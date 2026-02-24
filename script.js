@@ -9,6 +9,10 @@ const gateForm = document.getElementById("gateForm");
 const passInput = document.getElementById("passphrase");
 const gateError = document.getElementById("gateError");
 
+const gateCard = document.querySelector(".gateCard");
+const sigil = document.querySelector(".sigil");
+const cryWrap = document.getElementById("cryWrap");
+
 const openBtn = document.getElementById("openBtn");
 const closeBtn = document.getElementById("closeBtn");
 const replayBtn = document.getElementById("replayBtn");
@@ -23,7 +27,7 @@ noteDate.textContent = now.toLocaleDateString(undefined, { year:"numeric", month
 
 // Letter content (edit this to your exact message)
 const LETTER = [
-  "A.",
+  "My dearest amore,.",
   "",
   "This is your official warning.",
   "You have been selected by a highly motivated romantic villain with internet access.",
@@ -57,7 +61,6 @@ function typewriter(text, speed = 22){
     letterText.textContent += text[i] || "";
     i++;
 
-    // stop
     if (i >= text.length){
       clearInterval(typingTimer);
       typingTimer = null;
@@ -70,20 +73,39 @@ function show(view){
   view.classList.add("is-active");
 }
 
+function normalizePass(s){
+  return (s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function wrongAnswerFX(){
+  gateError.textContent = "You forgot?!";
+  cryWrap.classList.add("is-show");
+
+  gateCard.classList.remove("is-wrong");
+  sigil.classList.remove("is-angry");
+  void gateCard.offsetWidth; // restart animations
+  gateCard.classList.add("is-wrong");
+  sigil.classList.add("is-angry");
+
+  // remove angry state after a bit
+  setTimeout(() => sigil.classList.remove("is-angry"), 900);
+}
+
 gateForm.addEventListener("submit", (e) => {
   e.preventDefault();
   gateError.textContent = "";
 
-  const attempt = (passInput.value || "").trim().toLowerCase();
-
-  // forgiving normalization
-  const normalized = attempt.replace(/\s+/g, " ");
-  if (normalized === PASS){
+  const attempt = normalizePass(passInput.value);
+  if (attempt === PASS){
+    cryWrap.classList.remove("is-show");
     show(envelopeView);
     passInput.value = "";
     setTimeout(() => openBtn.focus(), 100);
   } else {
-    gateError.textContent = "Access denied. The archive rejects impostors.";
+    wrongAnswerFX();
     passInput.select();
   }
 });
@@ -96,11 +118,11 @@ function popSound(){
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.type = "sine";
-    o.frequency.setValueAtTime(280, audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(720, audioCtx.currentTime + 0.06);
+    o.frequency.setValueAtTime(260, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(740, audioCtx.currentTime + 0.06);
 
     g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.32, audioCtx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.34, audioCtx.currentTime + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.10);
 
     o.connect(g);
@@ -133,20 +155,17 @@ function openSequence(){
   openBtn.classList.add("is-opening");
   popSound();
 
-  // burst from envelope center
   const rect = openBtn.getBoundingClientRect();
   confettiBurst(rect.left + rect.width/2, rect.top + rect.height/2);
 
   setTimeout(() => {
     show(letterView);
 
-    // unfold
     note.classList.remove("note-folded");
     note.classList.remove("note-unfold");
-    void note.offsetWidth; // reflow to restart animation
+    void note.offsetWidth;
     note.classList.add("note-unfold");
 
-    // typewriter
     typewriter(LETTER, 18);
   }, 750);
 }
@@ -200,7 +219,6 @@ function spawnParticle(){
     wobble: rand(0, Math.PI*2),
     wobbleSpeed: rand(0.01, 0.03),
   });
-
   if (particles.length > 160) particles.shift();
 }
 
@@ -272,7 +290,6 @@ function drawConfetti(){
     ctx.translate(c.x, c.y);
     ctx.rotate(c.rot);
 
-    // dynamic gradient, visible without hardcoding a single flat color
     const g = ctx.createLinearGradient(-6, -6, 6, 6);
     g.addColorStop(0, `rgba(124,240,255,${c.alpha})`);
     g.addColorStop(1, `rgba(255,59,122,${c.alpha})`);
@@ -294,7 +311,6 @@ function tick(){
     p.wobble += p.wobbleSpeed;
     const wob = Math.sin(p.wobble) * 0.6;
 
-    // Slight mouse pull only when letter view is active
     if (mouse.active && letterView.classList.contains("is-active")){
       const dx = mouse.x - p.x;
       const dy = mouse.y - p.y;
@@ -318,7 +334,6 @@ function tick(){
   }
 
   drawConfetti();
-
   requestAnimationFrame(tick);
 }
 tick();
