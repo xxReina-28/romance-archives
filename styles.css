@@ -91,7 +91,23 @@ body{
   padding: 22px;
   box-shadow: 0 18px 40px rgba(0,0,0,.35);
   backdrop-filter: blur(10px);
+  transform: translateZ(0);
 }
+
+/* Shake animation on wrong pass */
+.gateCard.is-wrong{
+  animation: gateShake 520ms cubic-bezier(.2,.9,.2,1);
+}
+@keyframes gateShake{
+  0%{ transform: translateX(0); }
+  15%{ transform: translateX(-10px); }
+  30%{ transform: translateX(9px); }
+  45%{ transform: translateX(-7px); }
+  60%{ transform: translateX(6px); }
+  75%{ transform: translateX(-4px); }
+  100%{ transform: translateX(0); }
+}
+
 .gateTop{
   text-align:center;
   margin-bottom:16px;
@@ -106,7 +122,16 @@ body{
   background: rgba(255,255,255,.10);
   border:1px solid rgba(255,255,255,.12);
   font-size:20px;
+  transition: background 250ms ease, border-color 250ms ease, color 250ms ease, box-shadow 250ms ease;
 }
+
+.sigil.is-angry{
+  background: rgba(255,42,42,.18);
+  border-color: rgba(255,42,42,.35);
+  color: rgba(255,210,210,.95);
+  box-shadow: 0 0 0 6px rgba(255,42,42,.10);
+}
+
 .gateTitle{
   margin:0;
   letter-spacing:.3px;
@@ -148,20 +173,45 @@ body{
   background: rgba(0,0,0,.22);
   color:white;
   outline:none;
-  font-weight:700;
+  font-weight:800;
 }
 .gateInput::placeholder{ color: rgba(255,255,255,.55); }
+
 .gateError{
   margin:10px 0 0;
   color: #ffd2d2;
-  font-weight:700;
+  font-weight:900;
   min-height: 18px;
+  letter-spacing:.2px;
 }
+
 .gateFooter{
   margin:14px 0 0;
   opacity:.75;
   font-size:12px;
   text-align:center;
+}
+
+/* Cry gif reveal */
+.cryWrap{
+  display:none;
+  margin-top:12px;
+  justify-content:center;
+}
+.cryWrap.is-show{
+  display:flex;
+  animation: cryIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
+}
+@keyframes cryIn{
+  from{ transform: translateY(-6px) scale(.92); opacity:0; }
+  to{ transform: translateY(0) scale(1); opacity:1; }
+}
+.cryGif{
+  width: 170px;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 12px 22px rgba(0,0,0,.35);
 }
 
 /* Envelope */
@@ -308,6 +358,7 @@ body{
   line-height:1.65;
   font-size:16px;
   min-height: 220px;
+  white-space: pre-wrap;
 }
 
 .note-actions{
