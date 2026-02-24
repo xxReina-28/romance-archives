@@ -240,7 +240,7 @@ body{
   position:absolute;
   inset:0;
   border-radius:18px;
-  background: linear-gradient(135deg, #ff7fa0, #730303);
+  background: linear-gradient(135deg, #730303, #ff7fa0);
 }
 
 .env-shadow{
