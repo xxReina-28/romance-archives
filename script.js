@@ -1,5 +1,5 @@
 // Semi-private gate
-const PASS = "wow you're hot"; // semi-private, not truly secure
+const PASS = "wowyourehot"; // semi-private, not truly secure
 
 const gateView = document.getElementById("gateView");
 const envelopeView = document.getElementById("envelopeView");
