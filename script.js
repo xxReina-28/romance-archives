@@ -1,5 +1,5 @@
 // Semi-private gate
-const PASS = "wowyourehot"; // semi-private, not truly secure
+const PASS = "wowyourehot";
 
 const gateView = document.getElementById("gateView");
 const envelopeView = document.getElementById("envelopeView");
@@ -21,29 +21,34 @@ const note = document.getElementById("note");
 const noteDate = document.getElementById("noteDate");
 const letterText = document.getElementById("letterText");
 
+// Background music
+const bgm = document.getElementById("bgm");
+
+// Fade overlay injected (dramatic)
+const fadeOverlay = document.createElement("div");
+fadeOverlay.className = "fadeOverlay";
+document.body.appendChild(fadeOverlay);
+
 // Date
 const now = new Date();
 noteDate.textContent = now.toLocaleDateString(undefined, { year:"numeric", month:"long", day:"numeric" });
 
-// Letter content (edit this to your exact message)
+// Letter content (edit freely)
 const LETTER = [
-  "My dearest amore,.",
+  "To my dearest amore,",
   "",
-  "This is your official warning.",
-  "You have been selected by a highly motivated romantic villain with internet access.",
+  "You clicked the envelope,",
+  "so legally you are now in my jurisdiction.",
   "",
-  "I made you a restricted romance archive hosted on GitHub Pages,",
-  "because texting you like a normal person would be far too merciful.",
+  "I built this like a romantic villain builds a lair.",
+  "With style. With intent. With an unnecessary amount of effort.",
   "",
   "I like you.",
-  "Not in a casual, polite, socially acceptable way.",
-  "In a 'I will build a tiny interactive web experience to prove a point' way.",
+  "In a way that makes me want to prove things.",
+  "Not with words. With systems.",
   "",
-  "If you’re smiling right now, good.",
-  "That means the trap is working.",
-  "",
-  "Open me again whenever you need a reminder that you matter to someone",
-  "who is equal parts soft heart and sharp mind.",
+  "If you’re smiling, good.",
+  "The trap is functioning as designed.",
   "",
   "Yours,",
   "Reina."
@@ -51,8 +56,7 @@ const LETTER = [
 
 // Typewriter
 let typingTimer = null;
-
-function typewriter(text, speed = 22){
+function typewriter(text, speed = 18){
   clearInterval(typingTimer);
   letterText.textContent = "";
   let i = 0;
@@ -60,7 +64,6 @@ function typewriter(text, speed = 22){
   typingTimer = setInterval(() => {
     letterText.textContent += text[i] || "";
     i++;
-
     if (i >= text.length){
       clearInterval(typingTimer);
       typingTimer = null;
@@ -74,10 +77,7 @@ function show(view){
 }
 
 function normalizePass(s){
-  return (s || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
+  return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 function wrongAnswerFX(){
@@ -86,15 +86,25 @@ function wrongAnswerFX(){
 
   gateCard.classList.remove("is-wrong");
   sigil.classList.remove("is-angry");
-  void gateCard.offsetWidth; // restart animations
+  void gateCard.offsetWidth;
   gateCard.classList.add("is-wrong");
   sigil.classList.add("is-angry");
 
-  // remove angry state after a bit
   setTimeout(() => sigil.classList.remove("is-angry"), 900);
 }
 
-gateForm.addEventListener("submit", (e) => {
+// Start music safely after user gesture
+async function startBgm(){
+  if (!bgm) return;
+  try{
+    bgm.volume = 0.42;
+    await bgm.play();
+  } catch {
+    // browser blocked. will try again on next gesture
+  }
+}
+
+gateForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   gateError.textContent = "";
 
@@ -103,6 +113,7 @@ gateForm.addEventListener("submit", (e) => {
     cryWrap.classList.remove("is-show");
     show(envelopeView);
     passInput.value = "";
+    await startBgm();
     setTimeout(() => openBtn.focus(), 100);
   } else {
     wrongAnswerFX();
@@ -110,7 +121,7 @@ gateForm.addEventListener("submit", (e) => {
   }
 });
 
-// Audio: tiny pop using Web Audio API (no external files)
+// Audio pop (keep)
 let audioCtx = null;
 function popSound(){
   try{
@@ -129,61 +140,10 @@ function popSound(){
     g.connect(audioCtx.destination);
     o.start();
     o.stop(audioCtx.currentTime + 0.12);
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
-// Confetti burst (canvas overlay)
-function confettiBurst(x, y){
-  const count = 120;
-  for (let i = 0; i < count; i++){
-    confetti.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 9,
-      vy: (Math.random() - 1.2) * 10,
-      r: 2 + Math.random() * 3,
-      rot: Math.random() * Math.PI * 2,
-      vr: (Math.random() - 0.5) * 0.25,
-      life: 120 + Math.random() * 40,
-      alpha: 1
-    });
-  }
-}
-
-function openSequence(){
-  openBtn.classList.add("is-opening");
-  popSound();
-
-  const rect = openBtn.getBoundingClientRect();
-  confettiBurst(rect.left + rect.width/2, rect.top + rect.height/2);
-
-  setTimeout(() => {
-    show(letterView);
-
-    note.classList.remove("note-folded");
-    note.classList.remove("note-unfold");
-    void note.offsetWidth;
-    note.classList.add("note-unfold");
-
-    typewriter(LETTER, 18);
-  }, 750);
-}
-
-openBtn.addEventListener("click", openSequence);
-
-closeBtn.addEventListener("click", () => {
-  show(envelopeView);
-  openBtn.classList.remove("is-opening");
-});
-
-replayBtn.addEventListener("click", () => {
-  show(envelopeView);
-  openBtn.classList.remove("is-opening");
-  setTimeout(openSequence, 250);
-});
-
-// Background floating hearts + stars + confetti on one canvas
+/* Canvas FX */
 const canvas = document.getElementById("fx");
 const ctx = canvas.getContext("2d");
 
@@ -199,28 +159,41 @@ window.addEventListener("resize", resize);
 resize();
 
 const rand = (a,b)=> a + Math.random()*(b-a);
-const particles = [];
-const confetti = [];
-const STAR = "star";
-const HEART = "heart";
 
-function spawnParticle(){
-  const type = Math.random() < 0.58 ? HEART : STAR;
-  particles.push({
-    type,
+const stars = [];     // falling down
+const hearts = [];    // bouncing around
+const confetti = [];  // full-screen burst
+
+function spawnStar(){
+  stars.push({
     x: rand(0, window.innerWidth),
-    y: window.innerHeight + rand(10, 140),
-    r: rand(6, 16),
-    vy: rand(0.4, 1.3),
-    vx: rand(-0.25, 0.25),
+    y: rand(-120, -10),
+    r: rand(5, 12),
+    vy: rand(0.8, 2.4),
+    vx: rand(-0.2, 0.2),
     rot: rand(0, Math.PI*2),
     vr: rand(-0.01, 0.01),
-    alpha: rand(0.32, 0.85),
-    wobble: rand(0, Math.PI*2),
-    wobbleSpeed: rand(0.01, 0.03),
+    alpha: rand(0.35, 0.9)
   });
-  if (particles.length > 160) particles.shift();
+  if (stars.length > 110) stars.shift();
 }
+
+function spawnHeart(){
+  hearts.push({
+    x: rand(40, window.innerWidth - 40),
+    y: rand(40, window.innerHeight - 40),
+    r: rand(7, 14),
+    vx: rand(-2.0, 2.0),
+    vy: rand(-2.0, 2.0),
+    rot: rand(0, Math.PI*2),
+    vr: rand(-0.02, 0.02),
+    alpha: rand(0.35, 0.85)
+  });
+  if (hearts.length > 28) hearts.shift();
+}
+
+// initial hearts so it feels alive immediately
+for (let i=0;i<18;i++) spawnHeart();
 
 function drawStar(x,y,r,rot,alpha){
   ctx.save();
@@ -238,8 +211,8 @@ function drawStar(x,y,r,rot,alpha){
   }
   ctx.closePath();
   const grad = ctx.createLinearGradient(-r, -r, r, r);
-  grad.addColorStop(0, `rgba(124,240,255,${alpha})`);
-  grad.addColorStop(1, `rgba(255,59,122,${alpha})`);
+  grad.addColorStop(0, `rgba(216,178,76,${alpha})`);
+  grad.addColorStop(1, `rgba(255,255,255,${alpha})`);
   ctx.fillStyle = grad;
   ctx.fill();
   ctx.restore();
@@ -259,81 +232,165 @@ function drawHeart(x,y,r,rot,alpha){
   ctx.bezierCurveTo(16*s, 0, 0, 0, 0, 6*s);
   ctx.closePath();
 
-  const grad = ctx.createRadialGradient(0, 10*s, r*0.1, 0, 10*s, r*1.2);
+  const grad = ctx.createRadialGradient(0, 10*s, r*0.1, 0, 10*s, r*1.25);
   grad.addColorStop(0, `rgba(255,255,255,${alpha})`);
-  grad.addColorStop(1, `rgba(255,59,122,${alpha})`);
+  grad.addColorStop(1, `rgba(115,3,3,${alpha})`);
   ctx.fillStyle = grad;
   ctx.fill();
   ctx.restore();
 }
 
-let mouse = { x: window.innerWidth/2, y: window.innerHeight/2, active:false };
-window.addEventListener("mousemove", (e)=>{
-  mouse.x = e.clientX;
-  mouse.y = e.clientY;
-  mouse.active = true;
-});
-window.addEventListener("mouseleave", ()=> mouse.active = false);
+// Full-screen confetti burst + fade
+function confettiScreen(){
+  const count = 520;
+  for (let i = 0; i < count; i++){
+    confetti.push({
+      x: rand(0, window.innerWidth),
+      y: rand(0, window.innerHeight),
+      vx: rand(-3.5, 3.5),
+      vy: rand(-3.5, 3.5),
+      r: rand(2, 4.5),
+      rot: rand(0, Math.PI*2),
+      vr: rand(-0.25, 0.25),
+      life: rand(80, 140),
+      alpha: 1
+    });
+  }
+}
 
-function drawConfetti(){
+// Dramatic fade-to-letter
+function fadeToLetter(){
+  fadeOverlay.classList.add("is-on");
+  setTimeout(() => fadeOverlay.classList.remove("is-on"), 900);
+}
+
+async function openSequence(){
+  openBtn.classList.add("is-opening");
+  popSound();
+  await startBgm();
+
+  // Confetti covers the screen then disappears
+  confettiScreen();
+
+  // Fade transition
+  fadeToLetter();
+
+  setTimeout(() => {
+    show(letterView);
+
+    note.classList.remove("note-folded");
+    note.classList.remove("note-unfold");
+    void note.offsetWidth;
+    note.classList.add("note-unfold");
+
+    typewriter(LETTER, 18);
+  }, 650);
+}
+
+openBtn.addEventListener("click", openSequence);
+
+closeBtn.addEventListener("click", () => {
+  show(envelopeView);
+  openBtn.classList.remove("is-opening");
+});
+
+replayBtn.addEventListener("click", () => {
+  show(envelopeView);
+  openBtn.classList.remove("is-opening");
+  setTimeout(openSequence, 250);
+});
+
+// Heart bounce physics
+function stepHearts(){
+  for (const h of hearts){
+    h.x += h.vx;
+    h.y += h.vy;
+    h.rot += h.vr;
+
+    // wall bounce with slight damping
+    const pad = 20;
+    if (h.x < pad){ h.x = pad; h.vx *= -0.98; }
+    if (h.x > window.innerWidth - pad){ h.x = window.innerWidth - pad; h.vx *= -0.98; }
+    if (h.y < pad){ h.y = pad; h.vy *= -0.98; }
+    if (h.y > window.innerHeight - pad){ h.y = window.innerHeight - pad; h.vy *= -0.98; }
+
+    // mild random jitter to keep it alive
+    h.vx += rand(-0.03, 0.03);
+    h.vy += rand(-0.03, 0.03);
+
+    // cap speed
+    h.vx = Math.max(-2.4, Math.min(2.4, h.vx));
+    h.vy = Math.max(-2.4, Math.min(2.4, h.vy));
+  }
+}
+
+function stepStars(){
+  for (const s of stars){
+    s.x += s.vx;
+    s.y += s.vy;
+    s.rot += s.vr;
+
+    if (s.y > window.innerHeight + 40){
+      s.y = rand(-120, -10);
+      s.x = rand(0, window.innerWidth);
+      s.vy = rand(0.8, 2.4);
+      s.alpha = rand(0.35, 0.9);
+    }
+  }
+}
+
+function stepConfetti(){
   for (let i = confetti.length - 1; i >= 0; i--){
     const c = confetti[i];
     c.x += c.vx;
     c.y += c.vy;
-    c.vy += 0.18;
     c.rot += c.vr;
+
+    // drift and wrap slightly
+    if (c.x < -20) c.x = window.innerWidth + 20;
+    if (c.x > window.innerWidth + 20) c.x = -20;
+    if (c.y < -20) c.y = window.innerHeight + 20;
+    if (c.y > window.innerHeight + 20) c.y = -20;
+
     c.life -= 1;
     c.alpha = Math.max(0, c.life / 140);
 
+    if (c.life <= 0) confetti.splice(i, 1);
+  }
+}
+
+function drawConfetti(){
+  for (const c of confetti){
     ctx.save();
     ctx.globalAlpha = c.alpha;
     ctx.translate(c.x, c.y);
     ctx.rotate(c.rot);
 
     const g = ctx.createLinearGradient(-6, -6, 6, 6);
-    g.addColorStop(0, `rgba(124,240,255,${c.alpha})`);
-    g.addColorStop(1, `rgba(255,59,122,${c.alpha})`);
+    g.addColorStop(0, `rgba(216,178,76,${c.alpha})`);
+    g.addColorStop(1, `rgba(115,3,3,${c.alpha})`);
     ctx.fillStyle = g;
 
-    ctx.fillRect(-c.r*1.8, -c.r*0.8, c.r*3.2, c.r*1.6);
+    ctx.fillRect(-c.r*2.1, -c.r*0.9, c.r*3.6, c.r*1.8);
     ctx.restore();
-
-    if (c.life <= 0 || c.y > window.innerHeight + 80) confetti.splice(i, 1);
   }
 }
 
 function tick(){
   ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
 
-  if (Math.random() < 0.60) spawnParticle();
+  if (Math.random() < 0.85) spawnStar();
+  if (Math.random() < 0.03) spawnHeart(); // occasional new hearts
 
-  for (const p of particles){
-    p.wobble += p.wobbleSpeed;
-    const wob = Math.sin(p.wobble) * 0.6;
+  stepStars();
+  stepHearts();
+  stepConfetti();
 
-    if (mouse.active && letterView.classList.contains("is-active")){
-      const dx = mouse.x - p.x;
-      const dy = mouse.y - p.y;
-      const dist = Math.max(40, Math.sqrt(dx*dx + dy*dy));
-      const pull = 12 / dist;
-      p.vx += (dx / dist) * pull * 0.02;
-      p.vy += (dy / dist) * pull * 0.005;
-    }
-
-    p.x += p.vx + wob;
-    p.y -= p.vy;
-    p.rot += p.vr;
-
-    if (p.x < -40) p.x = window.innerWidth + 40;
-    if (p.x > window.innerWidth + 40) p.x = -40;
-
-    if (p.y < -80) p.alpha *= 0.985;
-
-    if (p.type === STAR) drawStar(p.x, p.y, p.r, p.rot, p.alpha);
-    else drawHeart(p.x, p.y, p.r, p.rot, p.alpha);
-  }
-
+  // Draw order: stars falling, hearts bouncing, confetti on top
+  for (const s of stars) drawStar(s.x, s.y, s.r, s.rot, s.alpha);
+  for (const h of hearts) drawHeart(h.x, h.y, h.r, h.rot, h.alpha);
   drawConfetti();
+
   requestAnimationFrame(tick);
 }
 tick();
