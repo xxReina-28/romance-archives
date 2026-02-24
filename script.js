@@ -34,16 +34,12 @@ const note = document.getElementById("note");
 const noteDate = document.getElementById("noteDate");
 const letterText = document.getElementById("letterText");
 
-// Background music (optional)
+// Background music
 const bgm = document.getElementById("bgm") || null;
-// Make sure music starts after ANY user gesture (browser autoplay rules)
-["click", "touchstart", "keydown"].forEach(evt => {
-  window.addEventListener(evt, () => startBgm(), { once: true });
-});
 
-// Defensive log so you can verify everything exists
+// Defensive log
 console.log("script.js loaded");
-["gateView","envelopeView","letterView","openBtn","note","letterText"].forEach(id => {
+["gateView","envelopeView","letterView","openBtn","note","letterText","bgm"].forEach(id => {
   console.log(id, document.getElementById(id) ? "OK" : "MISSING");
 });
 
@@ -104,12 +100,15 @@ function show(view){
 }
 
 function normalizePass(s){
-  return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  // normalize to compare even if spacing or apostrophes differ
+  const raw = (s || "").trim().toLowerCase();
+  const tight = raw.replace(/[^a-z0-9]+/g, ""); // removes spaces, apostrophes, punctuation
+  return { raw, tight };
 }
 
-// --------------------
+// ================================
 // Gate . wrong answer FX
-// --------------------
+// ================================
 function wrongAnswerFX(){
   if (gateError) gateError.textContent = "You forgot?!";
   if (cryWrap) cryWrap.classList.add("is-show");
@@ -117,30 +116,69 @@ function wrongAnswerFX(){
   if (gateCard && sigil){
     gateCard.classList.remove("is-wrong");
     sigil.classList.remove("is-angry");
-    void gateCard.offsetWidth; // restart animations
+    void gateCard.offsetWidth;
     gateCard.classList.add("is-wrong");
     sigil.classList.add("is-angry");
     setTimeout(() => sigil.classList.remove("is-angry"), 900);
   }
 }
 
-// --------------------
-// Background music . never blocks UI
-// --------------------
-function startBgm(){
+// ================================
+// Background music . HARDENED
+// ================================
+let bgmWanted = false;
+
+function wireBgmDebug(){
   if (!bgm) return;
+
+  bgm.addEventListener("error", () => {
+    console.warn("BGM error", bgm.error, "src:", bgm.currentSrc || "(no currentSrc)");
+  });
+
+  bgm.addEventListener("stalled", () => console.warn("BGM stalled"));
+  bgm.addEventListener("waiting", () => console.warn("BGM waiting"));
+  bgm.addEventListener("canplaythrough", () => {
+    if (bgmWanted) startBgm("canplaythrough");
+  });
+}
+
+function startBgm(reason = "unknown"){
+  if (!bgm) return;
+
+  bgmWanted = true;
+
   try{
     bgm.volume = 0.42;
+
+    // If the file is missing, currentSrc might be empty and play will fail
+    if (!bgm.currentSrc){
+      console.warn("BGM has no currentSrc yet. Reason:", reason);
+    }
+
     const p = bgm.play();
-    if (p && typeof p.catch === "function") p.catch(() => {});
-  } catch {
-    // ignore
+    if (p && typeof p.catch === "function"){
+      p.catch((err) => {
+        console.warn("BGM play blocked or failed. Reason:", reason, err);
+
+        // If the browser blocked it, we will try again on next gesture
+        // If the file is 404, Network tab will show it . fix assets path/name
+      });
+    }
+  } catch (e){
+    console.warn("BGM exception. Reason:", reason, e);
   }
 }
 
-// --------------------
+// Start music after ANY user gesture (autoplay rules)
+["click", "touchstart", "keydown"].forEach(evt => {
+  window.addEventListener(evt, () => startBgm(evt), { once: true, passive: true });
+});
+
+wireBgmDebug();
+
+// ================================
 // Typewriter
-// --------------------
+// ================================
 let typingTimer = null;
 
 function typewriter(text, speed = 18){
@@ -160,9 +198,9 @@ function typewriter(text, speed = 18){
   }, speed);
 }
 
-// --------------------
-// Tiny pop sound (WebAudio) . optional
-// --------------------
+// ================================
+// Tiny pop sound (WebAudio)
+// ================================
 let audioCtx = null;
 
 function popSound(){
@@ -183,14 +221,12 @@ function popSound(){
     g.connect(audioCtx.destination);
     o.start();
     o.stop(audioCtx.currentTime + 0.12);
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
-// --------------------
+// ================================
 // Dramatic fade overlay
-// --------------------
+// ================================
 function fadeToLetter(){
   if (!fadeOverlay) return;
   fadeOverlay.classList.add("is-on");
@@ -199,9 +235,6 @@ function fadeToLetter(){
 
 // ================================
 // Canvas FX
-// Stars fall down
-// Hearts bounce around
-// Confetti covers the screen then fades
 // ================================
 const canvas = document.getElementById("fx");
 const ctx = canvas ? canvas.getContext("2d") : null;
@@ -220,9 +253,9 @@ resize();
 
 const rand = (a,b)=> a + Math.random()*(b-a);
 
-const stars = [];     // falling down
-const hearts = [];    // bouncing
-const confetti = [];  // full-screen burst
+const stars = [];
+const hearts = [];
+const confetti = [];
 
 function spawnStar(){
   stars.push({
@@ -252,7 +285,6 @@ function spawnHeart(){
   if (hearts.length > 30) hearts.shift();
 }
 
-// seed hearts
 for (let i=0;i<18;i++) spawnHeart();
 
 function drawStar(x,y,r,rot,alpha){
@@ -410,7 +442,6 @@ function tick(){
     for (const h of hearts) drawHeart(h.x, h.y, h.r, h.rot, h.alpha);
     drawConfetti();
   }
-
   requestAnimationFrame(tick);
 }
 tick();
@@ -423,7 +454,7 @@ function openSequence(){
 
   try { openBtn && openBtn.classList.add("is-opening"); } catch (e) { console.error("openBtn issue", e); }
   try { popSound(); } catch (e) { console.error("popSound issue", e); }
-  try { startBgm(); } catch (e) { console.error("startBgm issue", e); }
+  try { startBgm("openSequence"); } catch (e) { console.error("startBgm issue", e); }
 
   try { confettiScreen(); } catch (e) { console.error("confettiScreen issue", e); }
   try { fadeToLetter(); } catch (e) { console.error("fadeToLetter issue", e); }
@@ -433,7 +464,6 @@ function openSequence(){
 
     try {
       show(letterView);
-      console.log("active view:", document.querySelector(".view.is-active")?.id);
     } catch (e) {
       console.error("show(letterView) failed", e);
       return;
@@ -445,8 +475,6 @@ function openSequence(){
         note.classList.remove("note-unfold");
         void note.offsetWidth;
         note.classList.add("note-unfold");
-      } else {
-        console.warn("note is missing");
       }
     } catch (e) {
       console.error("note unfold failed", e);
@@ -464,12 +492,18 @@ if (gateForm){
     e.preventDefault();
     if (gateError) gateError.textContent = "";
 
-    const attempt = normalizePass(passInput ? passInput.value : "");
-    if (attempt === PASS){
+    const { raw, tight } = normalizePass(passInput ? passInput.value : "");
+
+    const ok =
+      PASS_ACCEPT.has(raw) ||
+      PASS_ACCEPT.has(tight) ||
+      tight === "wowyourehot";
+
+    if (ok){
       if (cryWrap) cryWrap.classList.remove("is-show");
       show(envelopeView);
       if (passInput) passInput.value = "";
-      startBgm();
+      startBgm("gateUnlock");
       setTimeout(() => openBtn && openBtn.focus(), 100);
     } else {
       wrongAnswerFX();
