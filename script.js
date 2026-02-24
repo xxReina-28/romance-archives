@@ -32,6 +32,10 @@ const letterText = document.getElementById("letterText");
 
 // Background music (optional)
 const bgm = document.getElementById("bgm") || null;
+// Make sure music starts after ANY user gesture (browser autoplay rules)
+["click", "touchstart", "keydown"].forEach(evt => {
+  window.addEventListener(evt, () => startBgm(), { once: true });
+});
 
 // Defensive log so you can verify everything exists
 console.log("script.js loaded");
