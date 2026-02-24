@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Open Me</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <main class="stage">
+
+    <!-- Passphrase Gate -->
+    <section id="gateView" class="view is-active" aria-label="Passphrase gate">
+      <div class="gateCard">
+        <div class="gateTop">
+          <div class="sigil" aria-hidden="true">✦</div>
+          <h1 class="gateTitle">Restricted Romance Archive</h1>
+          <p class="gateSub">Enter the passphrase to proceed.</p>
+        </div>
+
+        <div class="gateHint">
+          <p class="hintTitle">Hint</p>
+          <p class="hintText">
+            To access this page, please put the first thing I said when I first met you.
+          </p>
+        </div>
+
+        <form id="gateForm" class="gateForm" autocomplete="off">
+          <label class="srOnly" for="passphrase">Passphrase</label>
+          <input id="passphrase" class="gateInput" type="password" placeholder="Passphrase" required />
+          <button class="btn" type="submit">Unlock</button>
+        </form>
+
+        <p id="gateError" class="gateError" role="alert" aria-live="polite"></p>
+
+        <p class="gateFooter">
+          .If you’re not A, this page will pretend it doesn’t know you.
+        </p>
+      </div>
+    </section>
+
+    <!-- Envelope view -->
+    <section id="envelopeView" class="view" aria-label="Envelope">
+      <button id="openBtn" class="envelope" aria-label="Open the letter">
+        <div class="env-body"></div>
+        <div class="env-shadow"></div>
+
+        <div class="env-flap"></div>
+
+        <div class="wax" aria-hidden="true">
+          <div class="waxInner">R</div>
+        </div>
+
+        <div class="env-label">Open Me</div>
+      </button>
+
+      <p class="hint">Click the envelope. Enter at your own emotional risk.</p>
+    </section>
+
+    <!-- Letter view -->
+    <section id="letterView" class="view" aria-label="Letter">
+      <div class="note note-folded" id="note">
+        <div class="note-top">
+          <h1 class="note-title">To A</h1>
+          <span class="note-date" id="noteDate"></span>
+        </div>
+
+        <article class="note-body" id="letterText" aria-label="Letter text"></article>
+
+        <div class="note-actions">
+          <button id="closeBtn" class="btn secondary" type="button">Close</button>
+          <button id="replayBtn" class="btn" type="button">Replay</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
