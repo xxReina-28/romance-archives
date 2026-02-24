@@ -240,7 +240,7 @@ body{
   position:absolute;
   inset:0;
   border-radius:18px;
-  background: linear-gradient(135deg, #ff7fa0, #f36565);
+  background: linear-gradient(135deg, #ff7fa0, #730303);
 }
 
 .env-shadow{
@@ -398,39 +398,6 @@ body{
 @media (max-width: 640px){
   .gateForm{ flex-direction:column; }
 }
-
-/* ===== Mobile fixes: stop zoom + keep centered + allow scroll ===== */
-body{
-  overscroll-behavior: none;
-}
-
-.stage{
-  min-height: 100dvh;
-  height: 100dvh;
-  padding: 18px;
-}
-
-.view{
-  width: 100%;
-}
-
-.envelope{
-  width: min(360px, 92vw);
-}
-
-.note{
-  width: min(760px, 92vw);
-  max-height: min(72dvh, 640px);
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Keep text readable on phones */
-.note-body{
-  font-size: 15px;
-  line-height: 1.6;
-}
-
 /* Prevent huge top cropping when address bar expands/collapses */
 #fx{
   height: 100dvh;
