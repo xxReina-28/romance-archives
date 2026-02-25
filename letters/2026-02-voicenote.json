@@ -3,7 +3,7 @@
   "title": "To my dearest amore,",
   "date": "2026-02-25",
   "blocks": [
-    { "type": "text", "value": "My Amore,\n\nNo essay today. Press play." },
-    { "type": "audio", "src": "media/audio/voicenote-01.mp3", "label": "Voice note" }
+    { "type": "text", "value": "My Amore,\n\nJust feel like saying this again. Press play." },
+    { "type": "audio", "src": "media/audio/voicenote-01.ogg", "label": "Voice note" }
   ]
 }
