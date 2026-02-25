@@ -1,7 +1,7 @@
-// ================================
-// Romantic Villain Letter . script.js
-// Audio hardened + updated letter body
-// ================================
+// =====================================
+// Letters to Amore . Desk + Flight + Blocks
+// Plain static site. Guarded entry.
+// =====================================
 
 // Passphrase . accepts spacing / apostrophe variations
 const PASS_ACCEPT = new Set([
@@ -12,38 +12,41 @@ const PASS_ACCEPT = new Set([
 
 // Views
 const gateView = document.getElementById("gateView");
-const envelopeView = document.getElementById("envelopeView");
+const deskView = document.getElementById("deskView");
 const letterView = document.getElementById("letterView");
 
 // Gate controls
 const gateForm = document.getElementById("gateForm");
 const passInput = document.getElementById("passphrase");
 const gateError = document.getElementById("gateError");
-
 const gateCard = document.querySelector(".gateCard");
 const sigil = document.querySelector(".sigil");
 const cryWrap = document.getElementById("cryWrap");
+const curtain = document.getElementById("curtain");
 
-// Envelope + letter controls
-const openBtn = document.getElementById("openBtn");
+// Desk controls
+const deskArea = document.getElementById("deskArea");
+const themeFilter = document.getElementById("themeFilter");
+const occasionFilter = document.getElementById("occasionFilter");
+const clearFilters = document.getElementById("clearFilters");
+
+// Letter controls
 const closeBtn = document.getElementById("closeBtn");
 const replayBtn = document.getElementById("replayBtn");
 
 // Letter elements
 const note = document.getElementById("note");
+const noteTitle = document.getElementById("noteTitle");
 const noteDate = document.getElementById("noteDate");
 const letterText = document.getElementById("letterText");
+
+// Flight overlay
+const flightOverlay = document.getElementById("flightOverlay");
 
 // Background music
 const bgm = document.getElementById("bgm") || null;
 
-// Defensive log
-console.log("script.js loaded");
-["gateView","envelopeView","letterView","openBtn","note","letterText","bgm"].forEach(id => {
-  console.log(id, document.getElementById(id) ? "OK" : "MISSING");
-});
-
-// Fade overlay injected (dramatic)
+// Dramatic fade overlay injected
 let fadeOverlay = document.querySelector(".fadeOverlay");
 if (!fadeOverlay){
   fadeOverlay = document.createElement("div");
@@ -51,16 +54,21 @@ if (!fadeOverlay){
   document.body.appendChild(fadeOverlay);
 }
 
+// Defensive log
+console.log("script.js loaded");
+
 // Date on letter
-if (noteDate){
-  const now = new Date();
-  noteDate.textContent = now.toLocaleDateString(undefined, { year:"numeric", month:"long", day:"numeric" });
+function setDateLabel(dateStr){
+  if (!noteDate) return;
+  const d = dateStr ? new Date(dateStr) : new Date();
+  noteDate.textContent = d.toLocaleDateString(undefined, { year:"numeric", month:"long", day:"numeric" });
 }
+setDateLabel();
 
 // ================================
-// Letter content . updated as requested
+// Default letter (fallback)
 // ================================
-const LETTER = [
+const DEFAULT_LETTER_TEXT = [
   "My Amore,",
   "",
   "I was going to write you something cool and composed. Something mysterious. Something that would quietly make you fall in love with me all over again.",
@@ -95,20 +103,17 @@ const LETTER = [
 // Utilities
 // ================================
 function show(view){
-  [gateView, envelopeView, letterView].forEach(v => v && v.classList.remove("is-active"));
+  [gateView, deskView, letterView].forEach(v => v && v.classList.remove("is-active"));
   if (view) view.classList.add("is-active");
 }
 
 function normalizePass(s){
-  // normalize to compare even if spacing or apostrophes differ
   const raw = (s || "").trim().toLowerCase();
-  const tight = raw.replace(/[^a-z0-9]+/g, ""); // removes spaces, apostrophes, punctuation
+  const tight = raw.replace(/[^a-z0-9]+/g, "");
   return { raw, tight };
 }
 
-// ================================
-// Gate . wrong answer FX
-// ================================
+// Gate wrong answer FX
 function wrongAnswerFX(){
   if (gateError) gateError.textContent = "You forgot?!";
   if (cryWrap) cryWrap.classList.add("is-show");
@@ -123,8 +128,15 @@ function wrongAnswerFX(){
   }
 }
 
+// Curtain open
+function openCurtain(){
+  if (!curtain) return;
+  curtain.classList.add("is-open");
+  setTimeout(() => curtain.style.display = "none", 950);
+}
+
 // ================================
-// Background music . HARDENED
+// Background music . hardened
 // ================================
 let bgmWanted = false;
 
@@ -144,24 +156,14 @@ function wireBgmDebug(){
 
 function startBgm(reason = "unknown"){
   if (!bgm) return;
-
   bgmWanted = true;
 
   try{
     bgm.volume = 0.42;
-
-    // If the file is missing, currentSrc might be empty and play will fail
-    if (!bgm.currentSrc){
-      console.warn("BGM has no currentSrc yet. Reason:", reason);
-    }
-
     const p = bgm.play();
     if (p && typeof p.catch === "function"){
       p.catch((err) => {
         console.warn("BGM play blocked or failed. Reason:", reason, err);
-
-        // If the browser blocked it, we will try again on next gesture
-        // If the file is 404, Network tab will show it . fix assets path/name
       });
     }
   } catch (e){
@@ -169,11 +171,9 @@ function startBgm(reason = "unknown"){
   }
 }
 
-// Start music after ANY user gesture (autoplay rules)
 ["click", "touchstart", "keydown"].forEach(evt => {
   window.addEventListener(evt, () => startBgm(evt), { once: true, passive: true });
 });
-
 wireBgmDebug();
 
 // ================================
@@ -181,7 +181,7 @@ wireBgmDebug();
 // ================================
 let typingTimer = null;
 
-function typewriter(text, speed = 18){
+function typewriter(text, speed = 18, onDone){
   if (!letterText) return;
 
   clearInterval(typingTimer);
@@ -194,15 +194,13 @@ function typewriter(text, speed = 18){
     if (i >= text.length){
       clearInterval(typingTimer);
       typingTimer = null;
+      if (typeof onDone === "function") onDone();
     }
   }, speed);
 }
 
-// ================================
 // Tiny pop sound (WebAudio)
-// ================================
 let audioCtx = null;
-
 function popSound(){
   try{
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
@@ -224,9 +222,7 @@ function popSound(){
   } catch {}
 }
 
-// ================================
 // Dramatic fade overlay
-// ================================
 function fadeToLetter(){
   if (!fadeOverlay) return;
   fadeOverlay.classList.add("is-on");
@@ -234,7 +230,7 @@ function fadeToLetter(){
 }
 
 // ================================
-// Canvas FX
+// Canvas FX (your original, unchanged logic)
 // ================================
 const canvas = document.getElementById("fx");
 const ctx = canvas ? canvas.getContext("2d") : null;
@@ -284,7 +280,6 @@ function spawnHeart(){
   });
   if (hearts.length > 30) hearts.shift();
 }
-
 for (let i=0;i<18;i++) spawnHeart();
 
 function drawStar(x,y,r,rot,alpha){
@@ -447,64 +442,449 @@ function tick(){
 tick();
 
 // ================================
-// Open sequence . hardened
+// Letters data load
 // ================================
-function openSequence(){
-  console.log("openSequence fired");
+let LETTER_INDEX = [];
+let currentLetterId = null;
 
-  try { openBtn && openBtn.classList.add("is-opening"); } catch (e) { console.error("openBtn issue", e); }
-  try { popSound(); } catch (e) { console.error("popSound issue", e); }
-  try { startBgm("openSequence"); } catch (e) { console.error("startBgm issue", e); }
+async function fetchJson(path){
+  const res = await fetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed fetch ${path}. ${res.status}`);
+  return res.json();
+}
 
-  try { confettiScreen(); } catch (e) { console.error("confettiScreen issue", e); }
-  try { fadeToLetter(); } catch (e) { console.error("fadeToLetter issue", e); }
+function getUnique(list, key){
+  return Array.from(new Set(list.map(x => x[key]).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+}
 
-  window.setTimeout(() => {
-    console.log("transition timeout fired");
+function fillSelect(selectEl, values, label){
+  if (!selectEl) return;
+  const keepFirst = selectEl.querySelector("option[value='']") ? 1 : 0;
+  while (selectEl.options.length > keepFirst) selectEl.remove(keepFirst);
 
-    try {
-      show(letterView);
-    } catch (e) {
-      console.error("show(letterView) failed", e);
-      return;
-    }
+  for (const v of values){
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    selectEl.appendChild(opt);
+  }
+}
 
-    try {
-      if (note){
-        note.classList.remove("note-folded");
-        note.classList.remove("note-unfold");
-        void note.offsetWidth;
-        note.classList.add("note-unfold");
+function applyFilters(list){
+  const t = themeFilter ? themeFilter.value : "";
+  const o = occasionFilter ? occasionFilter.value : "";
+  return list.filter(item => {
+    const okT = !t || item.theme === t;
+    const okO = !o || item.occasion === o;
+    return okT && okO;
+  });
+}
+
+function buildEnvelopeCard(item){
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "envCard";
+  btn.setAttribute("aria-label", `Open letter ${item.title || item.id}`);
+
+  const scatter = item.scatter || {};
+  const xPct = typeof scatter.x === "number" ? scatter.x : rand(8, 72);
+  const yPct = typeof scatter.y === "number" ? scatter.y : rand(8, 62);
+  const rDeg = typeof scatter.r === "number" ? scatter.r : rand(-9, 9);
+  const z = typeof scatter.z === "number" ? scatter.z : Math.floor(rand(1, 8));
+
+  btn.style.setProperty("--x", `${xPct}%`);
+  btn.style.setProperty("--y", `${yPct}%`);
+  btn.style.setProperty("--r", `${rDeg}deg`);
+  btn.style.setProperty("--z", `${z}`);
+
+  btn.innerHTML = `
+    <div class="env-body"></div>
+    <div class="env-shadow"></div>
+    <div class="env-flap"></div>
+
+    <div class="wax" aria-hidden="true">
+      <div class="waxInner">🐍</div>
+    </div>
+
+    <div class="envMeta">${(item.theme || "theme")}${item.occasion ? " · " + item.occasion : ""}</div>
+    <div class="env-label">${item.preview || item.title || "Open Me"}</div>
+  `;
+
+  btn.addEventListener("click", () => onEnvelopePick(btn, item));
+  return btn;
+}
+
+function renderDesk(){
+  if (!deskArea) return;
+  deskArea.innerHTML = "";
+
+  const filtered = applyFilters(LETTER_INDEX);
+
+  for (const item of filtered){
+    const card = buildEnvelopeCard(item);
+
+    // Convert % positions to actual px transforms via CSS translate. We keep it simple by using % of container.
+    // Set translate via CSS variables as px by reading container size.
+    // But we used % strings. So we convert now.
+    const rect = deskArea.getBoundingClientRect();
+    const xPct = parseFloat((item.scatter && item.scatter.x) ?? NaN);
+    const yPct = parseFloat((item.scatter && item.scatter.y) ?? NaN);
+
+    // If user provided scatter as numbers, treat as percent. If absent, our random was already percent numbers.
+    const x = isFinite(xPct) ? xPct : parseFloat(card.style.getPropertyValue("--x"));
+    const y = isFinite(yPct) ? yPct : parseFloat(card.style.getPropertyValue("--y"));
+
+    card.style.setProperty("--x", `${(rect.width * (x/100))}px`);
+    card.style.setProperty("--y", `${(rect.height * (y/100))}px`);
+
+    deskArea.appendChild(card);
+  }
+}
+
+async function loadIndex(){
+  try{
+    LETTER_INDEX = await fetchJson("./letters/index.json");
+  } catch (e){
+    console.warn("No letters/index.json found. Using fallback single letter.", e);
+    LETTER_INDEX = [
+      {
+        id: "default",
+        title: "Default",
+        theme: "teasing",
+        occasion: "random",
+        preview: "Click me. I’m harmless. Mostly.",
+        date: null,
+        scatter: { x: 40, y: 28, r: -5, z: 4 }
       }
-    } catch (e) {
-      console.error("note unfold failed", e);
-    }
+    ];
+  }
 
-    try { typewriter(LETTER, 18); } catch (e) { console.error("typewriter failed", e); }
-  }, 650);
+  fillSelect(themeFilter, getUnique(LETTER_INDEX, "theme"));
+  fillSelect(occasionFilter, getUnique(LETTER_INDEX, "occasion"));
+  renderDesk();
+}
+
+if (themeFilter) themeFilter.addEventListener("change", renderDesk);
+if (occasionFilter) occasionFilter.addEventListener("change", renderDesk);
+if (clearFilters) clearFilters.addEventListener("click", () => {
+  if (themeFilter) themeFilter.value = "";
+  if (occasionFilter) occasionFilter.value = "";
+  renderDesk();
+});
+
+window.addEventListener("resize", () => {
+  // Recompute scatter px positions
+  if (deskView && deskView.classList.contains("is-active")) renderDesk();
+});
+
+// ================================
+// FLIP flight to center
+// ================================
+function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function flyToCenter(envEl){
+  if (!flightOverlay) return;
+
+  const first = envEl.getBoundingClientRect();
+
+  // Clone for flight so the desk stays stable
+  const clone = envEl.cloneNode(true);
+  clone.classList.remove("is-opening");
+  clone.style.position = "absolute";
+  clone.style.left = `${first.left}px`;
+  clone.style.top = `${first.top}px`;
+  clone.style.width = `${first.width}px`;
+  clone.style.height = `${first.height}px`;
+  clone.style.transform = "none";
+
+  flightOverlay.appendChild(clone);
+
+  // Compute destination center
+  const destW = Math.min(420, window.innerWidth * 0.86);
+  const destH = destW * 0.75;
+  const lastLeft = (window.innerWidth - destW) / 2;
+  const lastTop = (window.innerHeight - destH) / 2;
+
+  // Animate
+  clone.animate([
+    { transform: "translate(0,0) scale(1) rotate(0deg)" },
+    { transform: `translate(${(lastLeft - first.left)}px, ${(lastTop - first.top)}px) scale(${destW/first.width}, ${destH/first.height}) rotate(0deg)` }
+  ], {
+    duration: 520,
+    easing: "cubic-bezier(.2,.9,.2,1)",
+    fill: "forwards"
+  });
+
+  await wait(520);
+
+  // Snap to final box for the opening animation
+  clone.style.left = `${lastLeft}px`;
+  clone.style.top = `${lastTop}px`;
+  clone.style.width = `${destW}px`;
+  clone.style.height = `${destH}px`;
+
+  return clone;
+}
+
+function clearFlight(){
+  if (!flightOverlay) return;
+  flightOverlay.innerHTML = "";
+}
+
+// ================================
+// Letter rendering (blocks)
+// ================================
+function clearLetter(){
+  if (!letterText) return;
+  letterText.textContent = "";
+  const blocks = letterText.querySelectorAll(".block");
+  blocks.forEach(b => b.remove());
+}
+
+function formatTime(s){
+  if (!isFinite(s)) return "0:00";
+  const m = Math.floor(s / 60);
+  const r = Math.floor(s % 60);
+  return `${m}:${String(r).padStart(2,"0")}`;
+}
+
+function mountAudioPlayer(container, src, label){
+  const wrap = document.createElement("div");
+  wrap.className = "block audioCard";
+
+  const audio = document.createElement("audio");
+  audio.preload = "metadata";
+  audio.src = src;
+
+  const row = document.createElement("div");
+  row.className = "audioRow";
+
+  const btn = document.createElement("button");
+  btn.className = "playBtn";
+  btn.type = "button";
+  btn.textContent = "▶";
+
+  const range = document.createElement("input");
+  range.className = "progress";
+  range.type = "range";
+  range.min = "0";
+  range.max = "1000";
+  range.value = "0";
+
+  const time = document.createElement("div");
+  time.className = "time";
+  time.textContent = "0:00 · 0:00";
+
+  row.appendChild(btn);
+  row.appendChild(range);
+  row.appendChild(time);
+
+  if (label){
+    const cap = document.createElement("div");
+    cap.style.margin = "0 0 10px";
+    cap.style.opacity = ".92";
+    cap.style.fontWeight = "900";
+    cap.style.textAlign = "left";
+    cap.textContent = label;
+    wrap.appendChild(cap);
+  }
+
+  wrap.appendChild(row);
+  wrap.appendChild(audio);
+  container.appendChild(wrap);
+
+  const sync = () => {
+    const dur = audio.duration || 0;
+    const cur = audio.currentTime || 0;
+    const p = dur ? (cur / dur) : 0;
+    range.value = String(Math.floor(p * 1000));
+    time.textContent = `${formatTime(cur)} · ${formatTime(dur)}`;
+    btn.textContent = audio.paused ? "▶" : "⏸";
+  };
+
+  btn.addEventListener("click", async () => {
+    try{
+      if (audio.paused){
+        await audio.play();
+      } else {
+        audio.pause();
+      }
+    } catch (e){
+      console.warn("Audio play failed", e);
+    }
+    sync();
+  });
+
+  range.addEventListener("input", () => {
+    const dur = audio.duration || 0;
+    if (!dur) return;
+    const p = Number(range.value) / 1000;
+    audio.currentTime = dur * p;
+  });
+
+  audio.addEventListener("timeupdate", sync);
+  audio.addEventListener("loadedmetadata", sync);
+  audio.addEventListener("ended", sync);
+}
+
+function mountImage(container, src, caption){
+  const wrap = document.createElement("div");
+  wrap.className = "block photoCard";
+
+  const img = document.createElement("img");
+  img.loading = "lazy";
+  img.alt = caption || "photo";
+  img.src = src;
+
+  wrap.appendChild(img);
+
+  if (caption){
+    const cap = document.createElement("div");
+    cap.className = "photoCaption";
+    cap.textContent = caption;
+    wrap.appendChild(cap);
+  }
+
+  container.appendChild(wrap);
+}
+
+async function loadLetterById(id){
+  if (id === "default"){
+    return {
+      id: "default",
+      title: "To my dearest amore,",
+      date: null,
+      blocks: [{ type: "text", value: DEFAULT_LETTER_TEXT }]
+    };
+  }
+
+  const path = `./letters/${id}.json`;
+  const data = await fetchJson(path);
+
+  // Normalize
+  const blocks = Array.isArray(data.blocks) ? data.blocks : [{ type:"text", value: String(data.content || "") }];
+  return {
+    id,
+    title: data.title || "To my dearest amore,",
+    date: data.date || null,
+    blocks
+  };
+}
+
+function blocksToTypedText(blocks){
+  const texts = blocks
+    .filter(b => b && b.type === "text" && typeof b.value === "string")
+    .map(b => b.value.trimEnd());
+  return texts.join("\n\n");
+}
+
+function mountMediaBlocks(blocks){
+  if (!letterText) return;
+  const media = blocks.filter(b => b && (b.type === "image" || b.type === "audio"));
+
+  for (const b of media){
+    if (b.type === "image" && b.src){
+      mountImage(letterText, b.src, b.caption || "");
+    }
+    if (b.type === "audio" && b.src){
+      mountAudioPlayer(letterText, b.src, b.label || "Voice note");
+    }
+  }
+}
+
+// ================================
+// Open sequence (fly, open, then render)
+// ================================
+async function openSequence(letterItem, clickedEl){
+  console.log("openSequence fired", letterItem?.id);
+
+  try{ popSound(); } catch {}
+  try{ startBgm("openSequence"); } catch {}
+  try{ confettiScreen(); } catch {}
+  try{ fadeToLetter(); } catch {}
+
+  // Fly to center
+  const flyer = await flyToCenter(clickedEl);
+  if (flyer){
+    flyer.classList.add("is-opening");
+  }
+
+  await wait(650);
+
+  // Enter reading mode
+  document.body.classList.add("is-reading");
+  show(letterView);
+
+  try{
+    if (note){
+      note.classList.remove("note-folded");
+      note.classList.remove("note-unfold");
+      void note.offsetWidth;
+      note.classList.add("note-unfold");
+    }
+  } catch {}
+
+  // Load letter content
+  clearLetter();
+
+  let letterData = null;
+  try{
+    letterData = await loadLetterById(letterItem.id);
+  } catch (e){
+    console.warn("Letter load failed, falling back to default text", e);
+    letterData = {
+      id: "fallback",
+      title: "To my dearest amore,",
+      date: null,
+      blocks: [{ type:"text", value: DEFAULT_LETTER_TEXT }]
+    };
+  }
+
+  if (noteTitle) noteTitle.textContent = letterData.title || "To my dearest amore,";
+  setDateLabel(letterData.date);
+
+  const typed = blocksToTypedText(letterData.blocks) || DEFAULT_LETTER_TEXT;
+
+  // Type, then mount media blocks
+  typewriter(typed, 18, () => {
+    mountMediaBlocks(letterData.blocks);
+  });
+
+  currentLetterId = letterItem.id;
+
+  // Remove flight clone
+  clearFlight();
+}
+
+function onEnvelopePick(envEl, item){
+  openSequence(item, envEl);
 }
 
 // ================================
 // Wire events
 // ================================
 if (gateForm){
-  gateForm.addEventListener("submit", (e) => {
+  gateForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (gateError) gateError.textContent = "";
 
     const { raw, tight } = normalizePass(passInput ? passInput.value : "");
-
-    const ok =
-      PASS_ACCEPT.has(raw) ||
-      PASS_ACCEPT.has(tight) ||
-      tight === "wowyourehot";
+    const ok = PASS_ACCEPT.has(raw) || PASS_ACCEPT.has(tight) || tight === "wowyourehot";
 
     if (ok){
       if (cryWrap) cryWrap.classList.remove("is-show");
-      show(envelopeView);
-      if (passInput) passInput.value = "";
+      openCurtain();
       startBgm("gateUnlock");
-      setTimeout(() => openBtn && openBtn.focus(), 100);
+
+      // load desk data while curtain opens
+      await loadIndex();
+
+      // swap view after a short beat
+      setTimeout(() => {
+        show(deskView);
+        if (passInput) passInput.value = "";
+      }, 520);
+
     } else {
       wrongAnswerFX();
       passInput && passInput.select();
@@ -512,15 +892,25 @@ if (gateForm){
   });
 }
 
-openBtn && openBtn.addEventListener("click", openSequence);
-
 closeBtn && closeBtn.addEventListener("click", () => {
-  show(envelopeView);
-  openBtn && openBtn.classList.remove("is-opening");
+  document.body.classList.remove("is-reading");
+  show(deskView);
+  clearFlight();
 });
 
-replayBtn && replayBtn.addEventListener("click", () => {
-  show(envelopeView);
-  openBtn && openBtn.classList.remove("is-opening");
-  setTimeout(openSequence, 250);
+replayBtn && replayBtn.addEventListener("click", async () => {
+  document.body.classList.remove("is-reading");
+  show(deskView);
+  clearFlight();
+
+  // Find the same card and re-open it
+  const item = LETTER_INDEX.find(x => x.id === currentLetterId) || LETTER_INDEX[0];
+  if (!item) return;
+
+  // pick the first matching rendered envelope
+  const card = deskArea ? deskArea.querySelector(".envCard") : null;
+  if (!card) return;
+
+  await wait(250);
+  openSequence(item, card);
 });
