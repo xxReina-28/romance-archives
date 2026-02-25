@@ -5,20 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Letters to Amore</title>
   <link rel="stylesheet" href="styles.css"/>
-  
 </head>
 <body>
   <canvas id="fx" aria-hidden="true"></canvas>
+
+  <!-- Flight overlay for FLIP animation -->
+  <div id="flightOverlay" class="flightOverlay" aria-hidden="true"></div>
 
   <main class="stage">
 
     <!-- Passphrase Gate -->
     <section id="gateView" class="view is-active" aria-label="Passphrase gate">
+      <!-- Curtains -->
+      <div id="curtain" class="curtain" aria-hidden="true">
+        <div class="curtainPanel left"></div>
+        <div class="curtainPanel right"></div>
+      </div>
+
       <div class="gateCard">
         <div class="gateTop">
           <div class="sigil" aria-hidden="true">✦</div>
           <h1 class="gateTitle">Restricted Romance Archive</h1>
-          <p class="gateSub">To access this page, enter the passphrase to proceed.</p>
+          <p class="gateSub">Enter the passphrase. The curtains will judge you.</p>
         </div>
 
         <div class="gateHint">
@@ -35,14 +43,15 @@
         </form>
 
         <p id="gateError" class="gateError" role="alert" aria-live="polite"></p>
+
         <div id="cryWrap" class="cryWrap" aria-hidden="true">
-  <img
-    class="cryGif"
-    src="https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif"
-    alt=""
-    loading="lazy"
-  />
-</div>
+          <img
+            class="cryGif"
+            src="https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif"
+            alt=""
+            loading="lazy"
+          />
+        </div>
 
         <p class="gateFooter">
           If you’re not amore, this page will pretend it doesn’t know you.
@@ -50,36 +59,42 @@
       </div>
     </section>
 
-    <!-- Envelope view -->
-    <section id="envelopeView" class="view" aria-label="Envelope">
-      <button id="openBtn" class="envelope" aria-label="Open the letter">
-        <div class="env-body"></div>
-        <div class="env-shadow"></div>
-
-        <div class="env-flap"></div>
-
-        <div class="wax" aria-hidden="true">
-          <div class="waxInner">🐍</div>
+    <!-- Envelope desk (gallery) -->
+    <section id="deskView" class="view" aria-label="Envelope desk">
+      <div class="deskTop">
+        <div class="deskTitleWrap">
+          <h2 class="deskTitle">Envelope Desk</h2>
+          <p class="deskSub">Pick one. It will fly to the center like it owns the place.</p>
         </div>
 
-        <div class="env-label">Open Me</div>
-      </button>
+        <div class="deskFilters" aria-label="Filters">
+          <select id="themeFilter" class="select">
+            <option value="">All themes</option>
+          </select>
+          <select id="occasionFilter" class="select">
+            <option value="">All occasions</option>
+          </select>
+          <button id="clearFilters" class="btn secondary" type="button">Clear</button>
+        </div>
+      </div>
 
-      <p class="hint">Click the envelope. Enter at your own emotional risk.</p>
+      <div id="deskArea" class="deskArea" aria-label="Envelopes"></div>
+
+      <p class="hint">Hover for sparkle. Click to open. Emotional safety not guaranteed.</p>
     </section>
 
     <!-- Letter view -->
     <section id="letterView" class="view" aria-label="Letter">
       <div class="note note-folded" id="note">
         <div class="note-top">
-          <h1 class="note-title">To my dearest amore,</h1>
+          <h1 class="note-title" id="noteTitle">To my dearest amore,</h1>
           <span class="note-date" id="noteDate"></span>
         </div>
 
         <article class="note-body" id="letterText" aria-label="Letter text"></article>
 
         <div class="note-actions">
-          <button id="closeBtn" class="btn secondary" type="button">Close</button>
+          <button id="closeBtn" class="btn secondary" type="button">Back</button>
           <button id="replayBtn" class="btn" type="button">Replay</button>
         </div>
       </div>
@@ -88,9 +103,9 @@
   </main>
 
   <audio id="bgm" loop preload="auto">
-   <source src="./assets/piano.mp3" type="audio/mpeg" />
+    <source src="./assets/piano.mp3" type="audio/mpeg" />
   </audio>
-  
+
   <script src="script.js"></script>
 </body>
 </html>
