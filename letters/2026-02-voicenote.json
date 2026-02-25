@@ -1,0 +1,9 @@
+{
+  "id": "2026-03-voicenote",
+  "title": "To my dearest amore,",
+  "date": "2026-02-25",
+  "blocks": [
+    { "type": "text", "value": "My Amore,\n\nNo essay today. Press play." },
+    { "type": "audio", "src": "media/audio/voicenote-01.mp3", "label": "Voice note" }
+  ]
+}
