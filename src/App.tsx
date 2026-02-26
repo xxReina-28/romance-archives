@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react"
 
 type View = "gate" | "desk" | "letter"
 
+type MediaImage = { src: string; alt?: string }
+
 type Letter = {
   id: string
   date: string
@@ -11,17 +13,16 @@ type Letter = {
   theme?: string
   occasion?: string
 
-  // Visuals
-  envelopeImage?: string // e.g. "/assets/envelopes/midnight-coffee.png"
+  // Optional visuals
+  envelopeImage?: string // e.g. "/assets/envelopes/envelope-01.png"
   letterPaperImage?: string // e.g. "/assets/papers/paper-01.png"
 
-  // Optional content
-  images?: { src: string; alt?: string }[]
+  // Optional content blocks
+  images?: MediaImage[]
   voicemailUrl?: string
 }
 
-// Change this once and forget it.
-const PASSPHRASE_CANONICAL = "wowyourehot"
+const PASSPHRASE_CANONICAL = "wowyourehot" // change once
 
 function normalizePassphrase(input: string) {
   return input
@@ -39,26 +40,28 @@ type Particle = {
   size: number
   opacity: number
   drift: number
+  blur: number
 }
 
 function makeParticles(kind: "heart" | "star") {
-  const count = kind === "heart" ? 28 : 20
-  const sizes =
-    kind === "heart"
-      ? [10, 12, 14, 16, 18, 22, 28, 34, 42, 56] // small + medium + big
-      : [6, 8, 10, 12, 14, 18]
+  const count = kind === "heart" ? 30 : 22
 
-  const arr: Particle[] = Array.from({ length: count }).map((_, i) => {
+  // mixed sizes: small + medium + big
+  const heartSizes = [10, 12, 14, 16, 18, 22, 28, 34, 42, 56]
+  const starSizes = [6, 8, 10, 12, 14, 18]
+
+  const sizes = kind === "heart" ? heartSizes : starSizes
+
+  return Array.from({ length: count }).map((_, i) => {
     const left = Math.random() * 100
     const delay = Math.random() * 6
     const duration = (kind === "heart" ? 7 : 6) + Math.random() * 10
     const size = sizes[Math.floor(Math.random() * sizes.length)]
-    const opacity = (kind === "heart" ? 0.06 : 0.10) + Math.random() * 0.20
-    const drift = (Math.random() * 2 - 1) * 65
-    return { i, left, delay, duration, size, opacity, drift }
+    const opacity = (kind === "heart" ? 0.06 : 0.10) + Math.random() * 0.22
+    const drift = (Math.random() * 2 - 1) * 70
+    const blur = (kind === "heart" ? 0.2 : 0.8) + Math.random() * 1.2
+    return { i, left, delay, duration, size, opacity, drift, blur }
   })
-
-  return arr
 }
 
 function AmbientFX() {
@@ -77,6 +80,7 @@ function AmbientFX() {
             animationDuration: `${p.duration}s`,
             fontSize: `${p.size}px`,
             opacity: p.opacity,
+            filter: `blur(${p.blur}px)`,
             ["--drift" as any]: `${p.drift}px`,
           }}
         >
@@ -95,6 +99,7 @@ function AmbientFX() {
             width: `${p.size}px`,
             height: `${p.size}px`,
             opacity: p.opacity,
+            filter: `blur(${p.blur}px)`,
             ["--drift" as any]: `${p.drift}px`,
           }}
         />
@@ -103,76 +108,111 @@ function AmbientFX() {
   )
 }
 
+function uniqSorted(values: Array<string | undefined>) {
+  const set = new Set(values.filter(Boolean) as string[])
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
+}
+
+function pickDefaultEnvelope(theme?: string) {
+  // Not too feminine: darker, clean, elegant
+  // Put files in: public/assets/envelopes/
+  switch ((theme || "").toLowerCase()) {
+    case "comfort":
+      return "/assets/envelopes/envelope-01.png"
+    case "missing-you":
+      return "/assets/envelopes/envelope-02.png"
+    case "romance":
+      return "/assets/envelopes/envelope-03.png"
+    default:
+      return "/assets/envelopes/envelope-01.png"
+  }
+}
+
+function pickDefaultPaper(theme?: string) {
+  // Put files in: public/assets/papers/
+  switch ((theme || "").toLowerCase()) {
+    case "comfort":
+      return "/assets/papers/paper-01.png"
+    case "missing-you":
+      return "/assets/papers/paper-02.png"
+    case "romance":
+      return "/assets/papers/paper-02.png"
+    default:
+      return "/assets/papers/paper-01.png"
+  }
+}
+
 export default function App() {
   const [view, setView] = useState<View>("gate")
   const [pass, setPass] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  // Replace these with your real letters.
-  // Put assets in /public/assets/... so the URLs work on GitHub Pages.
+  // Your letters imported from the files you uploaded (plus "My amore.txt").
+  // IMPORTANT: move these asset paths into /public so GitHub Pages serves them:
+  // - /public/media/images/missyou.gif
+  // - /public/media/audio/voicenote-01.ogg
   const letters: Letter[] = useMemo(
     () => [
       {
-        id: "first-rain",
-        date: "October 14, 2023",
-        title: "The First Rain",
-        preview: "I remember the way the sky looked just before it broke…",
-        body: "I remember the way the sky looked just before it broke…\n\nAnd somehow, you still felt like shelter.",
-        theme: "Soft",
-        occasion: "Random",
+        id: "2026-02-late-night",
+        title: "Late Night",
+        theme: "comfort",
+        occasion: "work",
+        preview: "If you’re tired, read this slowly.",
+        date: "2026-02-24",
+        body:
+          "My Amore,\n\n" +
+          "I wrote this for the version of you that keeps working even when you’re tired.\n\n" +
+          "You don’t need to be dramatic. Just breathe. I’m proud of you.",
+        images: [{ src: "/media/images/missyou.gif", alt: "A tiny proof I miss you." }],
+        // Optional overrides:
         envelopeImage: "/assets/envelopes/envelope-01.png",
         letterPaperImage: "/assets/papers/paper-01.png",
-        images: [{ src: "/assets/sample1.jpg", alt: "Memory" }],
       },
       {
-        id: "midnight-coffee",
-        date: "December 02, 2023",
-        title: "Midnight Coffee",
-        preview: "The world was asleep, but we were just beginning…",
-        body: "The world was asleep, but we were just beginning…\n\nIf I could bottle that night, I’d keep it beside my heartbeat.",
-        theme: "Cozy",
-        occasion: "Random",
+        id: "2026-03-voicenote",
+        title: "Play Me",
+        theme: "missing-you",
+        occasion: "distance",
+        preview: "No reading. Just listen.",
+        date: "2026-03-01",
+        body: "My Amore,\n\nJust feel like saying this again. Press play.",
+        voicemailUrl: "/media/audio/voicenote-01.ogg",
         envelopeImage: "/assets/envelopes/envelope-02.png",
-        letterPaperImage: "/assets/papers/paper-01.png",
-        voicemailUrl: "/assets/voice-midnight.mp3",
-      },
-      {
-        id: "promise-ink",
-        date: "January 20, 2024",
-        title: "A Promise in Ink",
-        preview: "I found this scrap of paper in my pocket today…",
-        body: "I found this scrap of paper in my pocket today…\n\nIt said: don’t forget how he makes you smile.",
-        theme: "Romance",
-        occasion: "Random",
-        envelopeImage: "/assets/envelopes/envelope-03.png",
         letterPaperImage: "/assets/papers/paper-02.png",
       },
       {
-        id: "last-train",
-        date: "February 14, 2024",
-        title: "The Last Train Home",
-        preview: "The station was empty, just the echo of our footsteps…",
-        body: "The station was empty, just the echo of our footsteps…\n\nStill, I’d wait. Still, I’d choose you.",
-        theme: "Bittersweet",
-        occasion: "Valentine",
-        envelopeImage: "/assets/envelopes/envelope-04.png",
+        id: "my-amore",
+        title: "My Amore",
+        theme: "romance",
+        occasion: "random",
+        preview: "Unfortunately. I am writing to you instead.",
+        date: "Undated",
+        body:
+          "My Amore,\n\n" +
+          "I was going to write you something cool and composed. Something mysterious. Something that would quietly make you fall in love with me all over again.\n\n" +
+          "Unfortunately. I am writing to you instead.\n\n" +
+          "You know what’s funny. No matter how independent I am, no matter how strong or self-sufficient I try to be, when it comes to you my brain just calmly says, “Ah yes. We surrender.”\n\n" +
+          "If kingdoms were built on smiles, you would already own mine. No battlefield needed.\n\n" +
+          "I don’t say this lightly. But you’ve become the part of my day I look forward to. The place my mind goes when the world gets too loud.\n\n" +
+          "And the most annoying part. You didn’t even try that hard.\n\n" +
+          "You just exist. You talk. You work. You do your thing. And somehow. I end up softer.\n\n" +
+          "So tonight, just know that somewhere in this world there is a woman smiling at her phone because of you.\n\n" +
+          "Whether I call you amore, master, or my emperor, it all means the same thing.\n\n" +
+          "You matter to me.\n\n" +
+          "Now go back to being powerful and hardworking. I’ll be here. Slightly obsessed. Pretending I’m not.\n\n" +
+          "I can’t wait to be back by your side again.\n\n" +
+          "Yours,\n" +
+          "Your very loyal subject",
+        envelopeImage: "/assets/envelopes/envelope-03.png",
         letterPaperImage: "/assets/papers/paper-02.png",
       },
     ],
     []
   )
 
-  const themes = useMemo(() => {
-    const set = new Set<string>()
-    letters.forEach((l) => l.theme && set.add(l.theme))
-    return Array.from(set).sort()
-  }, [letters])
-
-  const occasions = useMemo(() => {
-    const set = new Set<string>()
-    letters.forEach((l) => l.occasion && set.add(l.occasion))
-    return Array.from(set).sort()
-  }, [letters])
+  const themes = useMemo(() => uniqSorted(letters.map((l) => l.theme)), [letters])
+  const occasions = useMemo(() => uniqSorted(letters.map((l) => l.occasion)), [letters])
 
   const [themeFilter, setThemeFilter] = useState("")
   const [occasionFilter, setOccasionFilter] = useState("")
@@ -191,10 +231,7 @@ export default function App() {
     return Math.min(activeIndex, Math.max(0, filtered.length - 1))
   }, [activeIndex, filtered.length])
 
-  const activeLetter = useMemo(() => {
-    const l = filtered[safeActiveIndex] ?? filtered[0]
-    return l
-  }, [filtered, safeActiveIndex])
+  const activeLetter = useMemo(() => filtered[safeActiveIndex] ?? filtered[0], [filtered, safeActiveIndex])
 
   function onUnlock(e: React.FormEvent) {
     e.preventDefault()
@@ -221,6 +258,9 @@ export default function App() {
   function lock() {
     setPass("")
     setError(null)
+    setThemeFilter("")
+    setOccasionFilter("")
+    setActiveIndex(0)
     setView("gate")
   }
 
@@ -230,13 +270,16 @@ export default function App() {
     setActiveIndex(0)
   }
 
+  const envelopeBg = activeLetter?.envelopeImage || pickDefaultEnvelope(activeLetter?.theme)
+  const paperBg = activeLetter?.letterPaperImage || pickDefaultPaper(activeLetter?.theme)
+
   return (
     <div className="appRoot">
       <AmbientFX />
 
       {view === "gate" && (
         <main className="stageCenter">
-          <section className="gateCardFx gateCard">
+          <section className="gateCard">
             <div className="gateTop">
               <div className="sigil" aria-hidden="true">
                 ✦
@@ -346,6 +389,9 @@ export default function App() {
                   filtered.map((l, idx) => {
                     const offset = idx - safeActiveIndex
                     const isActive = idx === safeActiveIndex
+
+                    const bg = l.envelopeImage || pickDefaultEnvelope(l.theme)
+
                     return (
                       <button
                         key={l.id}
@@ -354,12 +400,7 @@ export default function App() {
                         onClick={() => setActiveIndex(idx)}
                         type="button"
                       >
-                        <div
-                          className="envelopeCardFx"
-                          style={{
-                            backgroundImage: `url(${l.envelopeImage ?? "/assets/envelopes/envelope-01.png"})`,
-                          }}
-                        >
+                        <div className="envelopeCardFx" style={{ backgroundImage: `url(${bg})` }}>
                           <div className="envelopeShade" />
                           <div className="envelopeText">
                             <div className="envelopeDate">{l.date}</div>
@@ -395,12 +436,7 @@ export default function App() {
 
       {view === "letter" && (
         <main className="stageCenter">
-          <section
-            className="letterPaper"
-            style={{
-              backgroundImage: `url(${activeLetter?.letterPaperImage ?? "/assets/papers/paper-01.png"})`,
-            }}
-          >
+          <section className="letterPaper" style={{ backgroundImage: `url(${paperBg})` }}>
             <div className="letterTop">
               <div>
                 <h1 className="letterTitle">{activeLetter?.title ?? "Letter"}</h1>
@@ -410,21 +446,11 @@ export default function App() {
                   {activeLetter?.occasion ? ` . ${activeLetter.occasion}` : ""}
                 </p>
               </div>
-            </div>
 
-            {activeLetter?.images?.length ? (
-              <div className="letterMediaGrid">
-                {activeLetter.images.map((img, i) => (
-                  <img
-                    key={`${activeLetter.id}-img-${i}`}
-                    className="letterImg"
-                    src={img.src}
-                    alt={img.alt ?? ""}
-                    loading="lazy"
-                  />
-                ))}
-              </div>
-            ) : null}
+              <button className="btnGhost" onClick={() => setView("desk")} type="button">
+                Back
+              </button>
+            </div>
 
             {activeLetter?.voicemailUrl ? (
               <div className="letterAudio">
@@ -435,16 +461,24 @@ export default function App() {
               </div>
             ) : null}
 
-            <article className="letterBody">{activeLetter?.body}</article>
+            {activeLetter?.images?.length ? (
+              <div className="letterMediaGrid">
+                {activeLetter.images.map((img, i) => (
+                  <img key={`${activeLetter.id}-img-${i}`} className="letterImg" src={img.src} alt={img.alt ?? ""} />
+                ))}
+              </div>
+            ) : null}
 
-            <div className="letterActions">
-              <button className="btnGhost" onClick={() => setView("desk")} type="button">
-                Back
-              </button>
-            </div>
+            <article className="letterBody">{activeLetter?.body}</article>
           </section>
         </main>
       )}
+
+      {/* Preload current envelope/paper a bit */}
+      <div style={{ display: "none" }}>
+        <img src={envelopeBg} alt="" />
+        <img src={paperBg} alt="" />
+      </div>
     </div>
   )
 }
