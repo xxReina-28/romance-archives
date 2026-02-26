@@ -1,131 +1,158 @@
-import { useEffect } from "react"
+import { useMemo, useState } from "react"
+
+type View = "gate" | "desk" | "letter"
+
+const PASSPHRASE = "PUT_YOUR_PASSPHRASE_HERE"
 
 export default function App() {
-  useEffect(() => {
-    // If you still use old script.js logic,
-    // temporarily load it until we refactor it.
-    const script = document.createElement("script")
-    script.src = "/script.js"
-    script.async = true
-    document.body.appendChild(script)
+  const [view, setView] = useState<View>("gate")
+  const [error, setError] = useState("")
+  const [pass, setPass] = useState("")
 
-    return () => {
-      document.body.removeChild(script)
+  const isPassOk = useMemo(() => {
+    return pass.trim().toLowerCase() === PASSPHRASE.trim().toLowerCase()
+  }, [pass])
+
+  function onUnlock(e: React.FormEvent) {
+    e.preventDefault()
+    if (!isPassOk) {
+      setError("Nope. The curtains remain unimpressed.")
+      return
     }
-  }, [])
+    setError("")
+    setView("desk")
+  }
 
   return (
-    <>
-      <canvas id="fx" aria-hidden="true"></canvas>
-
-      <div id="flightOverlay" className="flightOverlay" aria-hidden="true"></div>
-
-      <main className="stage">
-
-        <section id="gateView" className="view is-active" aria-label="Passphrase gate">
-          <div id="curtain" className="curtain" aria-hidden="true">
-            <div className="curtainPanel left"></div>
-            <div className="curtainPanel right"></div>
-          </div>
-
-          <div className="gateCard">
-            <div className="gateTop">
-              <div className="sigil">✦</div>
-              <h1 className="gateTitle">Restricted Romance Archive</h1>
-              <p className="gateSub">Enter the passphrase. The curtains will judge you.</p>
+    <div className="min-h-screen">
+      {view === "gate" && (
+        <main className="min-h-screen flex items-center justify-center px-6">
+          <section className="w-full max-w-xl rounded-3xl border border-white/10 bg-black/20 p-8 shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="h-12 w-12 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+                ✦
+              </div>
+              <h1 className="text-3xl font-semibold">
+                Restricted Romance Archive
+              </h1>
+              <p className="opacity-80">
+                Enter the passphrase. The curtains will judge you.
+              </p>
             </div>
 
-            <div className="gateHint">
-              <p className="hintTitle">Hint</p>
-              <p className="hintText">
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+              <p className="font-semibold mb-1">Hint</p>
+              <p className="opacity-80">
                 Please put the first thing I said when I first met you.
               </p>
             </div>
 
-            <form id="gateForm" className="gateForm" autoComplete="off">
+            <form onSubmit={onUnlock} className="mt-6 flex gap-3">
               <input
-                id="passphrase"
-                className="gateInput"
+                className="flex-1 rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none"
                 type="password"
                 placeholder="Passphrase"
+                value={pass}
+                onChange={(e) => setPass(e.target.value)}
                 required
               />
-              <button className="btn" type="submit">Unlock</button>
+              <button
+                className="rounded-2xl px-6 py-3 font-semibold bg-red-500/90 hover:bg-red-500 transition"
+                type="submit"
+              >
+                Unlock
+              </button>
             </form>
 
-            <p id="gateError" className="gateError" role="alert"></p>
+            {error && (
+              <p className="mt-3 text-sm text-red-200">
+                {error}
+              </p>
+            )}
 
-            <div id="cryWrap" className="cryWrap" aria-hidden="true">
+            <div className="mt-6 flex justify-center">
               <img
-                className="cryGif"
+                className="w-64 rounded-2xl opacity-95"
                 src="https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif"
                 alt=""
                 loading="lazy"
               />
             </div>
 
-            <p className="gateFooter">
+            <p className="mt-6 text-center text-sm opacity-70">
               If you’re not amore, this page will pretend it doesn’t know you.
             </p>
-          </div>
-        </section>
+          </section>
+        </main>
+      )}
 
-        <section id="deskView" className="view" aria-label="Envelope desk">
-          <div className="deskTop">
-            <div className="deskTitleWrap">
-              <h2 className="deskTitle">Envelope Desk</h2>
-              <p className="deskSub">
-                Pick one. It will fly to the center like it owns the place.
-              </p>
+      {view === "desk" && (
+        <main className="min-h-screen px-6 py-10">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+              <div>
+                <h2 className="text-2xl font-semibold">Envelope Desk</h2>
+                <p className="opacity-80">
+                  Pick one. It will fly to the center like it owns the place.
+                </p>
+              </div>
+
+              <button
+                className="rounded-2xl px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                onClick={() => setView("gate")}
+              >
+                Lock
+              </button>
             </div>
 
-            <div className="deskFilters">
-              <select id="themeFilter" className="select">
-                <option value="">All themes</option>
-              </select>
-              <select id="occasionFilter" className="select">
-                <option value="">All occasions</option>
-              </select>
-              <button id="clearFilters" className="btn secondary" type="button">
-                Clear
+            {/* TODO: Render your envelope cards here */}
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <button
+                className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left hover:bg-white/10 transition"
+                onClick={() => setView("letter")}
+              >
+                <div className="text-sm opacity-70">December 02, 2023</div>
+                <div className="mt-2 text-lg font-semibold">Midnight Coffee</div>
+                <div className="mt-1 opacity-80">
+                  The world was asleep, but we were just beginning…
+                </div>
               </button>
             </div>
           </div>
+        </main>
+      )}
 
-          <div id="deskArea" className="deskArea"></div>
-
-          <p className="hint">
-            Hover for sparkle. Click to open. Emotional safety not guaranteed.
-          </p>
-        </section>
-
-        <section id="letterView" className="view" aria-label="Letter">
-          <div className="note note-folded" id="note">
-            <div className="note-top">
-              <h1 className="note-title" id="noteTitle">
-                To my dearest amore,
-              </h1>
-              <span className="note-date" id="noteDate"></span>
+      {view === "letter" && (
+        <main className="min-h-screen flex items-center justify-center px-6 py-10">
+          <section className="w-full max-w-2xl rounded-3xl border border-white/10 bg-white/5 p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-semibold">To my dearest amore,</h1>
+                <p className="opacity-70 text-sm mt-1">December 02, 2023</p>
+              </div>
             </div>
 
-            <article className="note-body" id="letterText"></article>
+            <div className="mt-6 leading-relaxed opacity-90">
+              The world was asleep, but we were just beginning…
+            </div>
 
-            <div className="note-actions">
-              <button id="closeBtn" className="btn secondary" type="button">
+            <div className="mt-8 flex gap-3">
+              <button
+                className="rounded-2xl px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                onClick={() => setView("desk")}
+              >
                 Back
               </button>
-              <button id="replayBtn" className="btn" type="button">
+              <button
+                className="rounded-2xl px-4 py-2 bg-red-500/90 hover:bg-red-500 transition font-semibold"
+                onClick={() => {/* replay typing later */}}
+              >
                 Replay
               </button>
             </div>
-          </div>
-        </section>
-
-      </main>
-
-      <audio id="bgm" loop preload="auto">
-        <source src="/assets/piano.mp3" type="audio/mpeg" />
-      </audio>
-    </>
+          </section>
+        </main>
+      )}
+    </div>
   )
 }
