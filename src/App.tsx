@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react"
+import React, { useMemo, useState } from "react"
 
 type View = "gate" | "desk" | "letter"
 
@@ -10,11 +10,18 @@ type Letter = {
   body: string
   theme?: string
   occasion?: string
+
+  // Visuals
+  envelopeImage?: string // e.g. "/assets/envelopes/midnight-coffee.png"
+  letterPaperImage?: string // e.g. "/assets/papers/paper-01.png"
+
+  // Optional content
   images?: { src: string; alt?: string }[]
   voicemailUrl?: string
 }
 
-const PASSPHRASE_CANONICAL = "wowyourehot" // change once
+// Change this once and forget it.
+const PASSPHRASE_CANONICAL = "wowyourehot"
 
 function normalizePassphrase(input: string) {
   return input
@@ -24,33 +31,43 @@ function normalizePassphrase(input: string) {
     .replace(/[^a-z0-9]/g, "")
 }
 
-function useParticles(kind: "heart" | "star") {
-  return useMemo(() => {
-    const count = kind === "heart" ? 20 : 18
-    const sizes =
-      kind === "heart"
-        ? [10, 12, 14, 16, 18, 22, 28, 34] // mixed sizes
-        : [8, 10, 12, 14, 18]
+type Particle = {
+  i: number
+  left: number
+  delay: number
+  duration: number
+  size: number
+  opacity: number
+  drift: number
+}
 
-    return Array.from({ length: count }).map((_, i) => {
-      const left = Math.random() * 100
-      const delay = Math.random() * 6
-      const duration = (kind === "heart" ? 7 : 6) + Math.random() * 10
-      const size = sizes[Math.floor(Math.random() * sizes.length)]
-      const opacity = (kind === "heart" ? 0.08 : 0.10) + Math.random() * 0.18
-      const drift = (Math.random() * 2 - 1) * 55
-      return { i, left, delay, duration, size, opacity, drift }
-    })
-  }, [kind])
+function makeParticles(kind: "heart" | "star") {
+  const count = kind === "heart" ? 28 : 20
+  const sizes =
+    kind === "heart"
+      ? [10, 12, 14, 16, 18, 22, 28, 34, 42, 56] // small + medium + big
+      : [6, 8, 10, 12, 14, 18]
+
+  const arr: Particle[] = Array.from({ length: count }).map((_, i) => {
+    const left = Math.random() * 100
+    const delay = Math.random() * 6
+    const duration = (kind === "heart" ? 7 : 6) + Math.random() * 10
+    const size = sizes[Math.floor(Math.random() * sizes.length)]
+    const opacity = (kind === "heart" ? 0.06 : 0.10) + Math.random() * 0.20
+    const drift = (Math.random() * 2 - 1) * 65
+    return { i, left, delay, duration, size, opacity, drift }
+  })
+
+  return arr
 }
 
 function AmbientFX() {
-  const hearts = useParticles("heart")
-  const stars = useParticles("star")
+  const hearts = useMemo(() => makeParticles("heart"), [])
+  const stars = useMemo(() => makeParticles("star"), [])
 
   return (
     <div className="fxLayer" aria-hidden="true">
-      {hearts.map(p => (
+      {hearts.map((p) => (
         <span
           key={`h-${p.i}`}
           className="fxHeart"
@@ -66,7 +83,8 @@ function AmbientFX() {
           ♥
         </span>
       ))}
-      {stars.map(p => (
+
+      {stars.map((p) => (
         <span
           key={`s-${p.i}`}
           className="fxStar"
@@ -90,6 +108,8 @@ export default function App() {
   const [pass, setPass] = useState("")
   const [error, setError] = useState<string | null>(null)
 
+  // Replace these with your real letters.
+  // Put assets in /public/assets/... so the URLs work on GitHub Pages.
   const letters: Letter[] = useMemo(
     () => [
       {
@@ -97,9 +117,11 @@ export default function App() {
         date: "October 14, 2023",
         title: "The First Rain",
         preview: "I remember the way the sky looked just before it broke…",
-        body: "I remember the way the sky looked just before it broke…",
+        body: "I remember the way the sky looked just before it broke…\n\nAnd somehow, you still felt like shelter.",
         theme: "Soft",
         occasion: "Random",
+        envelopeImage: "/assets/envelopes/envelope-01.png",
+        letterPaperImage: "/assets/papers/paper-01.png",
         images: [{ src: "/assets/sample1.jpg", alt: "Memory" }],
       },
       {
@@ -107,9 +129,11 @@ export default function App() {
         date: "December 02, 2023",
         title: "Midnight Coffee",
         preview: "The world was asleep, but we were just beginning…",
-        body: "The world was asleep, but we were just beginning…",
+        body: "The world was asleep, but we were just beginning…\n\nIf I could bottle that night, I’d keep it beside my heartbeat.",
         theme: "Cozy",
         occasion: "Random",
+        envelopeImage: "/assets/envelopes/envelope-02.png",
+        letterPaperImage: "/assets/papers/paper-01.png",
         voicemailUrl: "/assets/voice-midnight.mp3",
       },
       {
@@ -117,18 +141,22 @@ export default function App() {
         date: "January 20, 2024",
         title: "A Promise in Ink",
         preview: "I found this scrap of paper in my pocket today…",
-        body: "I found this scrap of paper in my pocket today…",
+        body: "I found this scrap of paper in my pocket today…\n\nIt said: don’t forget how he makes you smile.",
         theme: "Romance",
         occasion: "Random",
+        envelopeImage: "/assets/envelopes/envelope-03.png",
+        letterPaperImage: "/assets/papers/paper-02.png",
       },
       {
         id: "last-train",
         date: "February 14, 2024",
         title: "The Last Train Home",
         preview: "The station was empty, just the echo of our footsteps…",
-        body: "The station was empty, just the echo of our footsteps…",
+        body: "The station was empty, just the echo of our footsteps…\n\nStill, I’d wait. Still, I’d choose you.",
         theme: "Bittersweet",
         occasion: "Valentine",
+        envelopeImage: "/assets/envelopes/envelope-04.png",
+        letterPaperImage: "/assets/papers/paper-02.png",
       },
     ],
     []
@@ -136,21 +164,21 @@ export default function App() {
 
   const themes = useMemo(() => {
     const set = new Set<string>()
-    letters.forEach(l => l.theme && set.add(l.theme))
+    letters.forEach((l) => l.theme && set.add(l.theme))
     return Array.from(set).sort()
   }, [letters])
 
   const occasions = useMemo(() => {
     const set = new Set<string>()
-    letters.forEach(l => l.occasion && set.add(l.occasion))
+    letters.forEach((l) => l.occasion && set.add(l.occasion))
     return Array.from(set).sort()
   }, [letters])
 
-  const [themeFilter, setThemeFilter] = useState<string>("")
-  const [occasionFilter, setOccasionFilter] = useState<string>("")
+  const [themeFilter, setThemeFilter] = useState("")
+  const [occasionFilter, setOccasionFilter] = useState("")
 
   const filtered = useMemo(() => {
-    return letters.filter(l => {
+    return letters.filter((l) => {
       if (themeFilter && l.theme !== themeFilter) return false
       if (occasionFilter && l.occasion !== occasionFilter) return false
       return true
@@ -159,17 +187,14 @@ export default function App() {
 
   const [activeIndex, setActiveIndex] = useState(0)
 
-  // keep activeIndex valid when filters change
-  const activeLetter = useMemo(() => {
-    const safeIndex = Math.min(activeIndex, Math.max(0, filtered.length - 1))
-    return filtered[safeIndex] ?? filtered[0]
-  }, [filtered, activeIndex])
-
   const safeActiveIndex = useMemo(() => {
     return Math.min(activeIndex, Math.max(0, filtered.length - 1))
   }, [activeIndex, filtered.length])
 
-  const trackRef = useRef<HTMLDivElement | null>(null)
+  const activeLetter = useMemo(() => {
+    const l = filtered[safeActiveIndex] ?? filtered[0]
+    return l
+  }, [filtered, safeActiveIndex])
 
   function onUnlock(e: React.FormEvent) {
     e.preventDefault()
@@ -193,50 +218,60 @@ export default function App() {
     setView("letter")
   }
 
+  function lock() {
+    setPass("")
+    setError(null)
+    setView("gate")
+  }
+
+  function clearFilters() {
+    setThemeFilter("")
+    setOccasionFilter("")
+    setActiveIndex(0)
+  }
+
   return (
-    <div className="min-h-screen relative text-white">
+    <div className="appRoot">
       <AmbientFX />
 
       {view === "gate" && (
-        <main className="min-h-screen flex items-center justify-center px-5 py-10">
-          <section className="gateCardFx w-full max-w-2xl rounded-[32px] border border-white/10 bg-black/25 shadow-2xl p-7 sm:p-10">
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className="h-12 w-12 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+        <main className="stageCenter">
+          <section className="gateCardFx gateCard">
+            <div className="gateTop">
+              <div className="sigil" aria-hidden="true">
                 ✦
               </div>
-              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-                Restricted Romance Archive
-              </h1>
-              <p className="text-white/80">
-                Enter the passphrase. The curtains will judge you.
-              </p>
+              <h1 className="gateTitle">Restricted Romance Archive</h1>
+              <p className="gateSub">Enter the passphrase. The curtains will judge you.</p>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="font-semibold mb-1">Hint</p>
-              <p className="text-white/75">
-                Please put the first thing I said when I first met you.
-              </p>
+            <div className="gateHint">
+              <p className="hintTitle">Hint</p>
+              <p className="hintText">Please put the first thing I said when I first met you.</p>
             </div>
 
-            <form onSubmit={onUnlock} className="mt-6 flex flex-col sm:flex-row gap-3">
+            <form onSubmit={onUnlock} className="gateForm">
               <input
-                className="flex-1 rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none text-white placeholder:text-white/40"
+                className="gateInput"
                 type="password"
                 placeholder="Passphrase"
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
                 required
               />
-              <button className="btnPrimary" type="submit">Unlock</button>
+              <button className="btnPrimary" type="submit">
+                Unlock
+              </button>
             </form>
 
             {error && (
               <>
-                <p className="mt-3 text-sm text-red-200">{error}</p>
-                <div className="mt-6 flex justify-center">
+                <p className="gateError" role="alert" aria-live="polite">
+                  {error}
+                </p>
+                <div className="cryWrap">
                   <img
-                    className="w-72 max-w-full rounded-2xl shadow-lg"
+                    className="cryGif"
                     src="https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif"
                     alt=""
                     loading="lazy"
@@ -245,99 +280,92 @@ export default function App() {
               </>
             )}
 
-            <p className="mt-7 text-center text-sm text-white/60">
-              If you’re not amore, this page will pretend it doesn’t know you.
-            </p>
+            <p className="gateFooter">If you’re not amore, this page will pretend it doesn’t know you.</p>
           </section>
         </main>
       )}
 
       {view === "desk" && (
-        <main className="min-h-screen px-5 py-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-start justify-between gap-6 flex-wrap">
-              <div>
-                <h2 className="text-3xl sm:text-4xl font-semibold">Letters to my amore</h2>
-              </div>
+        <main className="deskShell">
+          <div className="deskTop">
+            <h2 className="deskTitle">Letters to my amore</h2>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <select
-                  className="filterSelect"
-                  value={themeFilter}
-                  onChange={(e) => {
-                    setThemeFilter(e.target.value)
-                    setActiveIndex(0)
-                  }}
-                >
-                  <option value="">All themes</option>
-                  {themes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+            <div className="deskControls">
+              <select
+                className="filterSelect"
+                value={themeFilter}
+                onChange={(e) => {
+                  setThemeFilter(e.target.value)
+                  setActiveIndex(0)
+                }}
+              >
+                <option value="">All themes</option>
+                {themes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
 
-                <select
-                  className="filterSelect"
-                  value={occasionFilter}
-                  onChange={(e) => {
-                    setOccasionFilter(e.target.value)
-                    setActiveIndex(0)
-                  }}
-                >
-                  <option value="">All occasions</option>
-                  {occasions.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
+              <select
+                className="filterSelect"
+                value={occasionFilter}
+                onChange={(e) => {
+                  setOccasionFilter(e.target.value)
+                  setActiveIndex(0)
+                }}
+              >
+                <option value="">All occasions</option>
+                {occasions.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
 
-                <button
-                  className="btnGhost"
-                  onClick={() => {
-                    setThemeFilter("")
-                    setOccasionFilter("")
-                    setActiveIndex(0)
-                  }}
-                  type="button"
-                >
-                  Clear
-                </button>
+              <button className="btnGhost" onClick={clearFilters} type="button">
+                Clear
+              </button>
 
-                <button
-                  className="btnGhost"
-                  onClick={() => {
-                    setPass("")
-                    setError(null)
-                    setView("gate")
-                  }}
-                  type="button"
-                >
-                  Lock
-                </button>
-              </div>
+              <button className="btnGhost" onClick={lock} type="button">
+                Lock
+              </button>
             </div>
+          </div>
 
-            {/* Coverflow carousel */}
-            <div className="coverflowWrap mt-10">
-              <button className="navBtn left" onClick={() => go(-1)} aria-label="Previous">
+          <section className="deskMain">
+            <div className="coverflowWrap">
+              <button className="navBtn" onClick={() => go(-1)} aria-label="Previous" type="button">
                 ‹
               </button>
 
-              <div className="coverflowTrack" ref={trackRef}>
+              <div className="coverflowTrack">
                 {filtered.length === 0 ? (
-                  <div className="emptyState">
-                    No letters match those filters.
-                  </div>
+                  <div className="emptyState">No letters match those filters.</div>
                 ) : (
                   filtered.map((l, idx) => {
                     const offset = idx - safeActiveIndex
+                    const isActive = idx === safeActiveIndex
                     return (
                       <button
                         key={l.id}
-                        className="coverItem"
+                        className={`coverItem ${isActive ? "isActive" : ""}`}
                         style={{ ["--offset" as any]: offset }}
-                        data-active={idx === safeActiveIndex ? "true" : "false"}
                         onClick={() => setActiveIndex(idx)}
                         type="button"
                       >
-                        <div className="coverCard">
-                          <div className="coverDate">{l.date}</div>
-                          <div className="coverTitle">{l.title}</div>
-                          <div className="coverPreview">{l.preview}</div>
+                        <div
+                          className="envelopeCardFx"
+                          style={{
+                            backgroundImage: `url(${l.envelopeImage ?? "/assets/envelopes/envelope-01.png"})`,
+                          }}
+                        >
+                          <div className="envelopeShade" />
+                          <div className="envelopeText">
+                            <div className="envelopeDate">{l.date}</div>
+                            <div className="envelopeTitle">{l.title}</div>
+                            <div className="envelopePreview">{l.preview}</div>
+                          </div>
                         </div>
                       </button>
                     )
@@ -345,29 +373,38 @@ export default function App() {
                 )}
               </div>
 
-              <button className="navBtn right" onClick={() => go(1)} aria-label="Next">
+              <button className="navBtn" onClick={() => go(1)} aria-label="Next" type="button">
                 ›
               </button>
             </div>
 
-            <div className="mt-7 flex justify-center gap-3">
-              <button className="btnGhost" onClick={() => go(-1)} type="button">Prev</button>
-              <button className="btnPrimary" onClick={openLetter} type="button">Open</button>
-              <button className="btnGhost" onClick={() => go(1)} type="button">Next</button>
+            <div className="deskActions">
+              <button className="btnGhost" onClick={() => go(-1)} type="button">
+                Prev
+              </button>
+              <button className="btnPrimary" onClick={openLetter} type="button" disabled={!activeLetter}>
+                Open
+              </button>
+              <button className="btnGhost" onClick={() => go(1)} type="button">
+                Next
+              </button>
             </div>
-          </div>
+          </section>
         </main>
       )}
 
       {view === "letter" && (
-        <main className="min-h-screen flex items-center justify-center px-5 py-10">
-          <section className="w-full max-w-3xl rounded-[32px] border border-white/10 bg-black/25 p-7 sm:p-10">
-            <div className="flex items-start justify-between gap-4">
+        <main className="stageCenter">
+          <section
+            className="letterPaper"
+            style={{
+              backgroundImage: `url(${activeLetter?.letterPaperImage ?? "/assets/papers/paper-01.png"})`,
+            }}
+          >
+            <div className="letterTop">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-semibold">
-                  {activeLetter?.title ?? "Letter"}
-                </h1>
-                <p className="text-white/60 text-sm mt-1">
+                <h1 className="letterTitle">{activeLetter?.title ?? "Letter"}</h1>
+                <p className="letterMeta">
                   {activeLetter?.date}
                   {activeLetter?.theme ? ` . ${activeLetter.theme}` : ""}
                   {activeLetter?.occasion ? ` . ${activeLetter.occasion}` : ""}
@@ -375,13 +412,12 @@ export default function App() {
               </div>
             </div>
 
-            {/* Optional images */}
             {activeLetter?.images?.length ? (
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="letterMediaGrid">
                 {activeLetter.images.map((img, i) => (
                   <img
                     key={`${activeLetter.id}-img-${i}`}
-                    className="rounded-2xl border border-white/10 w-full object-cover"
+                    className="letterImg"
                     src={img.src}
                     alt={img.alt ?? ""}
                     loading="lazy"
@@ -390,21 +426,18 @@ export default function App() {
               </div>
             ) : null}
 
-            {/* Optional voicemail */}
             {activeLetter?.voicemailUrl ? (
-              <div className="mt-6">
-                <p className="text-sm text-white/70 mb-2">Voicemail</p>
-                <audio controls preload="metadata" className="w-full">
+              <div className="letterAudio">
+                <div className="letterSectionLabel">Voicemail</div>
+                <audio controls preload="metadata" className="audioFull">
                   <source src={activeLetter.voicemailUrl} />
                 </audio>
               </div>
             ) : null}
 
-            <article className="mt-6 whitespace-pre-wrap leading-relaxed text-white/90">
-              {activeLetter?.body}
-            </article>
+            <article className="letterBody">{activeLetter?.body}</article>
 
-            <div className="mt-8 flex gap-3">
+            <div className="letterActions">
               <button className="btnGhost" onClick={() => setView("desk")} type="button">
                 Back
               </button>
