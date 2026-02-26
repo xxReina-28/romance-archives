@@ -87,6 +87,68 @@ h1,h2,h3{
   padding-top: 28px;
 }
 
+/* Falling hearts (fullscreen, behind content) */
+.heartsLayer{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fallHeart{
+  position: absolute;
+  top: -12%;
+  will-change: transform, opacity;
+  animation-name: heartFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  text-shadow: 0 10px 35px rgba(0,0,0,0.25);
+  transform: translate3d(0,0,0);
+}
+
+@keyframes heartFall{
+  0%{
+    transform: translate3d(0, -10vh, 0) rotate(var(--rot));
+    opacity: 0;
+  }
+  10%{ opacity: 1; }
+  100%{
+    transform: translate3d(var(--drift), 120vh, 0) rotate(calc(var(--rot) * -1));
+    opacity: 0;
+  }
+}
+
+/* Falling hearts (local, inside letter) */
+.heartsLayerLocal{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.fallHeartLocal{
+  position: absolute;
+  top: -18%;
+  will-change: transform, opacity;
+  animation-name: heartFallLocal;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transform: translate3d(0,0,0);
+}
+
+@keyframes heartFallLocal{
+  0%{
+    transform: translate3d(0, -10vh, 0) rotate(var(--rot));
+    opacity: 0;
+  }
+  12%{ opacity: 1; }
+  100%{
+    transform: translate3d(var(--drift), 110vh, 0) rotate(calc(var(--rot) * -1));
+    opacity: 0;
+  }
+}
+
 /* Gate */
 .gateCard{
   width:100%;
@@ -97,6 +159,8 @@ h1,h2,h3{
   backdrop-filter: blur(14px);
   box-shadow: 0 30px 120px var(--shadow);
   padding: 28px;
+  position: relative;
+  z-index: 2;
 }
 
 .gateTop{
@@ -105,16 +169,6 @@ h1,h2,h3{
   align-items:center;
   text-align:center;
   gap: 10px;
-}
-
-.sigil{
-  height: 52px;
-  width: 52px;
-  border-radius: 18px;
-  display:grid;
-  place-items:center;
-  border: 1px solid var(--stroke);
-  background: var(--glass);
 }
 
 .gateTitle{
@@ -179,19 +233,6 @@ h1,h2,h3{
   margin-top: 10px;
   font-size: 13px;
   color: rgba(255,210,210,0.95);
-}
-
-.cryWrap{
-  margin-top: 14px;
-  display:flex;
-  justify-content:center;
-}
-
-.cryGif{
-  width: min(340px, 100%);
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: 0 18px 70px rgba(0,0,0,0.35);
 }
 
 .gateFooter{
@@ -259,11 +300,6 @@ h1,h2,h3{
   align-items:center;
 }
 
-@media (max-width: 760px){
-  .coverflowWrap{ grid-template-columns: 60px 1fr 60px; }
-}
-
-/* Frosted nav buttons */
 .navBtn{
   width: 58px;
   height: 58px;
@@ -277,6 +313,8 @@ h1,h2,h3{
   display:grid;
   place-items:center;
   transition: transform .15s ease, background .15s ease;
+  position: relative;
+  z-index: 3;
 }
 
 .navBtn:hover{
@@ -284,18 +322,32 @@ h1,h2,h3{
   background: rgba(255,255,255,0.12);
 }
 
-/* Spotlight strip. No overlap */
+/* Real scroll track with snap, and padding so first/last card are not cut */
 .coverflowTrack{
   height: 240px;
-  overflow: hidden;
   display:flex;
   align-items:center;
-  justify-content:center;
   gap: clamp(14px, 2.2vw, 28px);
-  padding: 18px 8px;
+
+  overflow-x: auto;
+  overflow-y: visible;
+
+  padding: 18px 110px; /* FIX: edge card visibility */
+  scroll-snap-type: x mandatory;
+
+  position: relative;
+  z-index: 2;
+
+  scrollbar-width: none;
+}
+.coverflowTrack::-webkit-scrollbar{ display:none; }
+
+.snapItem{
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
 }
 
-/* Card item with “center bigger”, spaced, and slight tilt */
+/* Scroll-based pop variables set from JS */
 .coverItem{
   border: 0;
   padding: 0;
@@ -303,31 +355,23 @@ h1,h2,h3{
   background: transparent;
   flex: 0 0 auto;
 
+  opacity: var(--popOpacity, 0.78);
+  filter: blur(var(--popBlur, 0.6px));
+
   transform:
-    translateY(calc(abs(var(--offset)) * 10px))
-    rotate(calc(var(--offset) * -1.6deg))
-    scale(calc(1 - (min(2, abs(var(--offset))) * 0.12)));
+    translateY(calc(10px - var(--popLift, 0px)))
+    rotate(var(--popTilt, 0deg))
+    scale(var(--popScale, 0.92));
 
-  opacity: calc(1 - (min(2, abs(var(--offset))) * 0.18));
-  filter: blur(calc(min(2, abs(var(--offset))) * 0.45px));
-
-  transition: transform .22s ease, opacity .22s ease, filter .22s ease;
-}
-
-.coverItem:hover{
-  transform:
-    translateY(calc(abs(var(--offset)) * 8px))
-    rotate(calc(var(--offset) * -1.0deg))
-    scale(calc(1 - (min(2, abs(var(--offset))) * 0.10)));
+  transition: transform .12s linear, opacity .12s linear, filter .12s linear;
 }
 
 .coverItem.isActive{
   opacity: 1;
   filter: none;
-  transform: translateY(0) rotate(0deg) scale(1.03);
 }
 
-/* Flat paper-ish card */
+/* Paper-ish flat card */
 .flatCard{
   width: clamp(170px, 18vw, 240px);
   height: clamp(120px, 12vw, 160px);
@@ -377,12 +421,6 @@ h1,h2,h3{
       rgba(0,0,0,0.08) 100%
     );
   opacity: 0.95;
-}
-
-.coverItem:hover .flatCard{
-  box-shadow:
-    0 26px 70px rgba(0,0,0,0.36),
-    0 1px 0 rgba(255,255,255,0.18) inset;
 }
 
 .flatCard > *{
@@ -453,9 +491,11 @@ h1,h2,h3{
   display:flex;
   justify-content:center;
   gap: 10px;
+  position: relative;
+  z-index: 2;
 }
 
-/* Letter (flat paper) */
+/* Letter */
 .letterPaperFlat{
   width: 100%;
   max-width: 880px;
@@ -472,6 +512,12 @@ h1,h2,h3{
     rgba(0,0,0,0.18);
 
   backdrop-filter: blur(10px);
+  z-index: 2;
+}
+
+.letterPaperFlat > *{
+  position: relative;
+  z-index: 1;
 }
 
 .letterTop{
@@ -495,10 +541,18 @@ h1,h2,h3{
 
 .letterBody{
   margin-top: 18px;
-  white-space: pre-wrap;
   line-height: 1.78;
   font-size: 16px;
   color: rgba(255,255,255,0.92);
+}
+
+.letterBody img{
+  max-width: 100%;
+  height: auto;
+  border-radius: 18px;
+  margin: 16px 0;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.10);
 }
 
 .letterAudio{
@@ -513,46 +567,20 @@ h1,h2,h3{
 
 .audioFull{ width: 100%; }
 
+.letterCover{
+  margin-top: 16px;
+}
+
+.coverImg{
+  width: 100%;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
 .emptyState{
   padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.18);
-}
-
-/* FX Layer */
-.fxLayer{
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.fxHeart{
-  position: absolute;
-  bottom: -14%;
-  animation: fxFloatUp linear infinite;
-  color: rgba(255,255,255,0.92);
-}
-
-.fxStar{
-  position: absolute;
-  top: -12%;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.92);
-  animation: fxFallDown linear infinite;
-  box-shadow: 0 0 10px rgba(255,255,255,0.35);
-}
-
-@keyframes fxFloatUp{
-  0%{ transform: translate3d(0,0,0) translateX(0); opacity: 0; }
-  10%{ opacity: 1; }
-  100%{ transform: translate3d(var(--drift), -130vh, 0); opacity: 0; }
-}
-
-@keyframes fxFallDown{
-  0%{ transform: translate3d(0,0,0) translateX(0); opacity: 0; }
-  15%{ opacity: 1; }
-  100%{ transform: translate3d(var(--drift), 130vh, 0); opacity: 0; }
 }
