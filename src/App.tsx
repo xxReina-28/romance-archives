@@ -1,5 +1,4 @@
 import { useEffect } from "react"
-import "./styles.css"
 
 export default function App() {
   useEffect(() => {
