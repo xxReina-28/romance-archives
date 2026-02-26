@@ -1,6 +1,6 @@
 ---
 title: Play Me
-date: 2026-03-01
+date: "2026-03-01"
 theme: missing-you
 occasion: distance
 preview: No reading. Just listen.

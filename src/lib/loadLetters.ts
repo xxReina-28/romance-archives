@@ -1,4 +1,4 @@
-import matter from "gray-matter"
+import fm from "front-matter"
 import { marked } from "marked"
 
 export type Letter = {
@@ -13,30 +13,47 @@ export type Letter = {
   content: string
 }
 
+type Attrs = {
+  title?: string
+  date?: string
+  theme?: string
+  occasion?: string
+  preview?: string
+  audio?: string
+  coverImage?: string
+}
+
 export function loadLetters(): Letter[] {
   const modules = import.meta.glob("../data/letters/*.md", {
     eager: true,
-    as: "raw",
+    query: "?raw",
+    import: "default",
   })
 
   const letters: Letter[] = []
 
   for (const path in modules) {
     const raw = modules[path] as string
-    const { data, content } = matter(raw)
+    if (!raw) continue
+
+    const parsed = fm<Attrs>(raw)
+    const a = parsed.attributes || {}
 
     letters.push({
       id: path.split("/").pop()?.replace(".md", "") || "",
-      title: data.title || "Untitled",
-      date: data.date || "",
-      theme: data.theme,
-      occasion: data.occasion,
-      preview: data.preview,
-      audio: data.audio,
-      coverImage: data.coverImage,
-      content: marked.parse(content),
+      title: a.title || "Untitled",
+      date: a.date || "",
+      theme: a.theme,
+      occasion: a.occasion,
+      preview: a.preview,
+      audio: a.audio,
+      coverImage: a.coverImage,
+      content: marked.parse(parsed.body || ""),
     })
   }
 
-  return letters.sort((a, b) => b.date.localeCompare(a.date))
+  // Sort newest first. ISO dates sort correctly as strings (YYYY-MM-DD)
+  return letters.sort((x, y) =>
+  String(y.date ?? "").localeCompare(String(x.date ?? ""))
+)
 }
