@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 
 type View = "gate" | "desk" | "letter"
 
-const PASSPHRASE = "PUT_YOUR_PASSPHRASE_HERE"
+const PASSPHRASE = "wow you're hot"
 
 export default function App() {
   const [view, setView] = useState<View>("gate")
