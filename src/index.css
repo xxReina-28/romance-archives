@@ -2,7 +2,9 @@
 @import "tailwindcss";
 
 html, body, #root { height: 100%; }
-body { margin: 0; background: #6a0d1b; }
+body {
+  background: radial-gradient(circle at center, #8b0000 0%, #5a0c15 60%, #3a0710 100%);
+}
 
 @theme {
   --font-serif: "Cormorant Garamond", serif;
@@ -53,3 +55,106 @@ body { margin: 0; background: #6a0d1b; }
 .animate-shake {
   animation: shake 0.2s ease-in-out 0s 2;
 }
+
+/* Make sure everything fills the screen */
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+/* Ambient FX layer */
+.fxLayer{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* Hearts float up */
+.fxHeart{
+  position: absolute;
+  bottom: -10%;
+  animation-name: fxFloatUp;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  filter: blur(0.2px);
+}
+
+/* Stars fall down */
+.fxStar{
+  position: absolute;
+  top: -10%;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  animation-name: fxFallDown;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  box-shadow: 0 0 8px rgba(255,255,255,0.35);
+}
+
+@keyframes fxFloatUp{
+  0%   { transform: translate3d(0, 0, 0) translateX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate3d(0, -130vh, 0) translateX(var(--drift)); opacity: 0; }
+}
+
+@keyframes fxFallDown{
+  0%   { transform: translate3d(0, 0, 0) translateX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate3d(0, 130vh, 0) translateX(var(--drift)); opacity: 0; }
+}
+
+/* Gate card */
+.gateCardFx{
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(10px);
+}
+
+/* Carousel */
+.carousel{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 18px;
+  padding: 14px 10px 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.carousel::-webkit-scrollbar{ height: 10px; }
+.carousel::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.12); border-radius: 999px; }
+.carousel::-webkit-scrollbar-track{ background: transparent; }
+
+.envelopeCard{
+  scroll-snap-align: center;
+  flex: 0 0 auto;
+  width: min(360px, 78vw);
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+  padding: 18px 18px 20px;
+  text-align: left;
+  transition: transform .25s ease, opacity .25s ease, background .25s ease;
+  opacity: 0.55;
+  transform: scale(0.92);
+  backdrop-filter: blur(10px);
+}
+
+.envelopeCard:hover{
+  opacity: 0.8;
+  transform: scale(0.96);
+}
+
+.envelopeCard.isActive{
+  opacity: 1;
+  transform: scale(1);
+  background: rgba(0,0,0,0.28);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+}
+
+.envelopeMeta{ display: flex; gap: 10px; align-items: center; }
+.envelopeDate{ font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; }
+.envelopeTitle{ margin-top: 10px; font-size: 20px; font-weight: 700; }
+.envelopePreview{ margin-top: 8px; opacity: 0.78; line-height: 1.45; }
