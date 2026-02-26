@@ -6,17 +6,6 @@ occasion: "battles"
 preview: "Before you step into your battles."
 ---
 
-Strategic angle first.
-Before competition, you do not inflate pressure. You stabilize him. You anchor him. You remind him who he already is.
-
-Here’s a version that builds calm confidence, not nervous hype.
-
----
-
-preview: "Before you step into the game."
-
----
-
 ![I'm rooting for you](media/images/good-luck.gif)
 
 My Amore,
