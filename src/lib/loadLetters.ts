@@ -1,5 +1,8 @@
 import fm from "front-matter"
+import fm from "front-matter"
 import { marked } from "marked"
+
+marked.setOptions({ breaks: true })
 
 export type Letter = {
   id: string
