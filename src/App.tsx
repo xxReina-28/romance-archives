@@ -2,8 +2,6 @@ import React, { useMemo, useState } from "react"
 
 type View = "gate" | "desk" | "letter"
 
-type MediaImage = { src: string; alt?: string }
-
 type Letter = {
   id: string
   date: string
@@ -12,13 +10,6 @@ type Letter = {
   body: string
   theme?: string
   occasion?: string
-
-  // Optional visuals
-  envelopeImage?: string // e.g. "/assets/envelopes/envelope-01.png"
-  letterPaperImage?: string // e.g. "/assets/papers/paper-01.png"
-
-  // Optional content blocks
-  images?: MediaImage[]
   voicemailUrl?: string
 }
 
@@ -45,11 +36,8 @@ type Particle = {
 
 function makeParticles(kind: "heart" | "star") {
   const count = kind === "heart" ? 30 : 22
-
-  // mixed sizes: small + medium + big
   const heartSizes = [10, 12, 14, 16, 18, 22, 28, 34, 42, 56]
   const starSizes = [6, 8, 10, 12, 14, 18]
-
   const sizes = kind === "heart" ? heartSizes : starSizes
 
   return Array.from({ length: count }).map((_, i) => {
@@ -57,7 +45,7 @@ function makeParticles(kind: "heart" | "star") {
     const delay = Math.random() * 6
     const duration = (kind === "heart" ? 7 : 6) + Math.random() * 10
     const size = sizes[Math.floor(Math.random() * sizes.length)]
-    const opacity = (kind === "heart" ? 0.06 : 0.10) + Math.random() * 0.22
+    const opacity = (kind === "heart" ? 0.06 : 0.1) + Math.random() * 0.22
     const drift = (Math.random() * 2 - 1) * 70
     const blur = (kind === "heart" ? 0.2 : 0.8) + Math.random() * 1.2
     return { i, left, delay, duration, size, opacity, drift, blur }
@@ -113,33 +101,30 @@ function uniqSorted(values: Array<string | undefined>) {
   return Array.from(set).sort((a, b) => a.localeCompare(b))
 }
 
-function pickDefaultEnvelope(theme?: string) {
-  // Not too feminine: darker, clean, elegant
-  // Put files in: public/assets/envelopes/
-  switch ((theme || "").toLowerCase()) {
-    case "comfort":
-      return "/assets/envelopes/envelope-01.png"
-    case "missing-you":
-      return "/assets/envelopes/envelope-02.png"
-    case "romance":
-      return "/assets/envelopes/envelope-03.png"
-    default:
-      return "/assets/envelopes/envelope-01.png"
-  }
+/**
+ * Flat-card color system.
+ * Theme influences hue family so "themes" look cohesive.
+ */
+function cardColors(theme?: string) {
+  const t = (theme || "").toLowerCase()
+  if (t.includes("comfort")) return { a: "#D5C9B6", b: "#CBB79E" } // warm parchment
+  if (t.includes("missing")) return { a: "#BFD2CC", b: "#AFC3BD" } // sage
+  if (t.includes("romance")) return { a: "#D6B7BE", b: "#CFA5AD" } // rose
+  if (t.includes("work")) return { a: "#C8D2E6", b: "#B8C3DA" } // cool slate
+  return { a: "#D0C7D9", b: "#BEB2CB" } // muted lavender
 }
 
-function pickDefaultPaper(theme?: string) {
-  // Put files in: public/assets/papers/
-  switch ((theme || "").toLowerCase()) {
-    case "comfort":
-      return "/assets/papers/paper-01.png"
-    case "missing-you":
-      return "/assets/papers/paper-02.png"
-    case "romance":
-      return "/assets/papers/paper-02.png"
-    default:
-      return "/assets/papers/paper-01.png"
+function getVisibleWindow(total: number, active: number, range = 2) {
+  if (total <= 0) return []
+  if (total <= range * 2 + 1) {
+    return Array.from({ length: total }).map((_, i) => ({ idx: i, offset: i - active }))
   }
+  const out: Array<{ idx: number; offset: number }> = []
+  for (let off = -range; off <= range; off++) {
+    const idx = (active + off + total) % total
+    out.push({ idx, offset: off })
+  }
+  return out
 }
 
 export default function App() {
@@ -147,10 +132,6 @@ export default function App() {
   const [pass, setPass] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  // Your letters imported from the files you uploaded (plus "My amore.txt").
-  // IMPORTANT: move these asset paths into /public so GitHub Pages serves them:
-  // - /public/media/images/missyou.gif
-  // - /public/media/audio/voicenote-01.ogg
   const letters: Letter[] = useMemo(
     () => [
       {
@@ -164,10 +145,6 @@ export default function App() {
           "My Amore,\n\n" +
           "I wrote this for the version of you that keeps working even when you’re tired.\n\n" +
           "You don’t need to be dramatic. Just breathe. I’m proud of you.",
-        images: [{ src: "/media/images/missyou.gif", alt: "A tiny proof I miss you." }],
-        // Optional overrides:
-        envelopeImage: "/assets/envelopes/envelope-01.png",
-        letterPaperImage: "/assets/papers/paper-01.png",
       },
       {
         id: "2026-03-voicenote",
@@ -178,8 +155,6 @@ export default function App() {
         date: "2026-03-01",
         body: "My Amore,\n\nJust feel like saying this again. Press play.",
         voicemailUrl: "/media/audio/voicenote-01.ogg",
-        envelopeImage: "/assets/envelopes/envelope-02.png",
-        letterPaperImage: "/assets/papers/paper-02.png",
       },
       {
         id: "my-amore",
@@ -204,8 +179,6 @@ export default function App() {
           "I can’t wait to be back by your side again.\n\n" +
           "Yours,\n" +
           "Your very loyal subject",
-        envelopeImage: "/assets/envelopes/envelope-03.png",
-        letterPaperImage: "/assets/papers/paper-02.png",
       },
     ],
     []
@@ -270,8 +243,10 @@ export default function App() {
     setActiveIndex(0)
   }
 
-  const envelopeBg = activeLetter?.envelopeImage || pickDefaultEnvelope(activeLetter?.theme)
-  const paperBg = activeLetter?.letterPaperImage || pickDefaultPaper(activeLetter?.theme)
+  const visible = useMemo(
+    () => getVisibleWindow(filtered.length, safeActiveIndex, 2),
+    [filtered.length, safeActiveIndex]
+  )
 
   return (
     <div className="appRoot">
@@ -382,31 +357,36 @@ export default function App() {
                 ‹
               </button>
 
-              <div className="coverflowTrack">
+              <div className="coverflowTrack" role="list" aria-label="Letters carousel">
                 {filtered.length === 0 ? (
                   <div className="emptyState">No letters match those filters.</div>
                 ) : (
-                  filtered.map((l, idx) => {
-                    const offset = idx - safeActiveIndex
+                  visible.map(({ idx, offset }) => {
+                    const l = filtered[idx]
                     const isActive = idx === safeActiveIndex
-
-                    const bg = l.envelopeImage || pickDefaultEnvelope(l.theme)
+                    const c = cardColors(l.theme)
 
                     return (
                       <button
-                        key={l.id}
+                        key={`${l.id}-${idx}`}
                         className={`coverItem ${isActive ? "isActive" : ""}`}
-                        style={{ ["--offset" as any]: offset }}
+                        style={{
+                          ["--offset" as any]: offset,
+                          ["--cardA" as any]: c.a,
+                          ["--cardB" as any]: c.b,
+                        }}
                         onClick={() => setActiveIndex(idx)}
                         type="button"
+                        role="listitem"
                       >
-                        <div className="envelopeCardFx" style={{ backgroundImage: `url(${bg})` }}>
-                          <div className="envelopeShade" />
-                          <div className="envelopeText">
-                            <div className="envelopeDate">{l.date}</div>
-                            <div className="envelopeTitle">{l.title}</div>
-                            <div className="envelopePreview">{l.preview}</div>
+                        <div className="flatCard">
+                          <div className="flatCardTop">
+                            {l.voicemailUrl ? <span className="pill">VOICE</span> : <span className="pill ghost">TEXT</span>}
+                            <div className="flatDate">{l.date}</div>
                           </div>
+
+                          <div className="flatTitle">{l.title}</div>
+                          <div className="flatPreview">{l.preview}</div>
                         </div>
                       </button>
                     )
@@ -436,7 +416,7 @@ export default function App() {
 
       {view === "letter" && (
         <main className="stageCenter">
-          <section className="letterPaper" style={{ backgroundImage: `url(${paperBg})` }}>
+          <section className="letterPaperFlat">
             <div className="letterTop">
               <div>
                 <h1 className="letterTitle">{activeLetter?.title ?? "Letter"}</h1>
@@ -461,24 +441,10 @@ export default function App() {
               </div>
             ) : null}
 
-            {activeLetter?.images?.length ? (
-              <div className="letterMediaGrid">
-                {activeLetter.images.map((img, i) => (
-                  <img key={`${activeLetter.id}-img-${i}`} className="letterImg" src={img.src} alt={img.alt ?? ""} />
-                ))}
-              </div>
-            ) : null}
-
             <article className="letterBody">{activeLetter?.body}</article>
           </section>
         </main>
       )}
-
-      {/* Preload current envelope/paper a bit */}
-      <div style={{ display: "none" }}>
-        <img src={envelopeBg} alt="" />
-        <img src={paperBg} alt="" />
-      </div>
     </div>
   )
 }

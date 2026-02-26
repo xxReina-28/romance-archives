@@ -10,7 +10,6 @@ html, body, #root { height: 100%; }
   --velvet-4: #8b101c;
 
   --glass: rgba(255,255,255,0.07);
-  --glass-2: rgba(255,255,255,0.10);
   --stroke: rgba(255,255,255,0.14);
 
   --ink: rgba(255,255,255,0.92);
@@ -252,7 +251,7 @@ h1,h2,h3{
 }
 .filterSelect option{ color: #111; }
 
-/* Coverflow */
+/* Carousel wrapper */
 .coverflowWrap{
   display:grid;
   grid-template-columns: 72px 1fr 72px;
@@ -260,20 +259,11 @@ h1,h2,h3{
   align-items:center;
 }
 
-.coverflowTrack{
-  position: relative;
-  height: 320px;
-  overflow: hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
 @media (max-width: 760px){
   .coverflowWrap{ grid-template-columns: 60px 1fr 60px; }
-  .coverflowTrack{ height: 300px; }
 }
 
+/* Frosted nav buttons */
 .navBtn{
   width: 58px;
   height: 58px;
@@ -294,101 +284,168 @@ h1,h2,h3{
   background: rgba(255,255,255,0.12);
 }
 
+/* Spotlight strip. No overlap */
+.coverflowTrack{
+  height: 240px;
+  overflow: hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: clamp(14px, 2.2vw, 28px);
+  padding: 18px 8px;
+}
+
+/* Card item with “center bigger”, spaced, and slight tilt */
 .coverItem{
-  position:absolute;
-  left:50%;
-  background: transparent;
   border: 0;
   padding: 0;
   cursor: pointer;
+  background: transparent;
+  flex: 0 0 auto;
 
   transform:
-    translateX(-50%)
-    translateX(calc(var(--offset) * 340px))
-    scale(calc(1 - (min(3, max(-3, abs(var(--offset)))) * 0.16)))
-    rotateY(calc(var(--offset) * -10deg));
-  transform-origin:center;
-  transition: transform .28s ease, filter .28s ease, opacity .28s ease;
+    translateY(calc(abs(var(--offset)) * 10px))
+    rotate(calc(var(--offset) * -1.6deg))
+    scale(calc(1 - (min(2, abs(var(--offset))) * 0.12)));
 
-  opacity: calc(1 - (min(3, max(-3, abs(var(--offset)))) * 0.22));
-  filter: blur(calc(min(3, max(0, abs(var(--offset)))) * 1.1px));
+  opacity: calc(1 - (min(2, abs(var(--offset))) * 0.18));
+  filter: blur(calc(min(2, abs(var(--offset))) * 0.45px));
+
+  transition: transform .22s ease, opacity .22s ease, filter .22s ease;
 }
 
-@media (max-width: 760px){
-  .coverItem{
-    transform:
-      translateX(-50%)
-      translateX(calc(var(--offset) * 250px))
-      scale(calc(1 - (min(3, max(-3, abs(var(--offset)))) * 0.16)))
-      rotateY(calc(var(--offset) * -10deg));
-  }
+.coverItem:hover{
+  transform:
+    translateY(calc(abs(var(--offset)) * 8px))
+    rotate(calc(var(--offset) * -1.0deg))
+    scale(calc(1 - (min(2, abs(var(--offset))) * 0.10)));
 }
 
 .coverItem.isActive{
   opacity: 1;
   filter: none;
+  transform: translateY(0) rotate(0deg) scale(1.03);
 }
 
-.envelopeCardFx{
-  width: min(620px, 78vw);
-  height: 220px;
-  border-radius: 26px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+/* Flat paper-ish card */
+.flatCard{
+  width: clamp(170px, 18vw, 240px);
+  height: clamp(120px, 12vw, 160px);
+  border-radius: 22px;
+
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow:
+    0 18px 55px rgba(0,0,0,0.32),
+    0 1px 0 rgba(255,255,255,0.18) inset;
+
+  overflow: hidden;
   position: relative;
-  overflow:hidden;
-  box-shadow: 0 22px 80px rgba(0,0,0,0.42);
+
+  background:
+    repeating-linear-gradient(
+      115deg,
+      rgba(0,0,0,0.018) 0px,
+      rgba(0,0,0,0.018) 1px,
+      rgba(255,255,255,0.00) 7px,
+      rgba(255,255,255,0.00) 11px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.012) 0px,
+      rgba(0,0,0,0.012) 1px,
+      rgba(255,255,255,0.00) 5px,
+      rgba(255,255,255,0.00) 9px
+    ),
+    linear-gradient(135deg, var(--cardA), var(--cardB));
 }
 
-@media (max-width: 760px){
-  .envelopeCardFx{
-    width: min(560px, 84vw);
-    height: 210px;
-  }
-}
-
-.envelopeShade{
+.flatCard::after{
+  content:"";
   position:absolute;
   inset:0;
-  background: linear-gradient(
-    90deg,
-    rgba(0,0,0,0.45) 0%,
-    rgba(0,0,0,0.20) 46%,
-    rgba(0,0,0,0.62) 100%
-  );
+  pointer-events:none;
+
+  background:
+    radial-gradient(120% 90% at 50% 35%,
+      rgba(255,255,255,0.10) 0%,
+      rgba(255,255,255,0.02) 40%,
+      rgba(0,0,0,0.10) 100%
+    ),
+    linear-gradient(180deg,
+      rgba(255,255,255,0.10) 0%,
+      rgba(255,255,255,0.00) 30%,
+      rgba(0,0,0,0.08) 100%
+    );
+  opacity: 0.95;
 }
 
-.envelopeText{
-  position:absolute;
-  inset:0;
-  padding: 16px 18px 18px;
+.coverItem:hover .flatCard{
+  box-shadow:
+    0 26px 70px rgba(0,0,0,0.36),
+    0 1px 0 rgba(255,255,255,0.18) inset;
+}
+
+.flatCard > *{
+  position: relative;
+  z-index: 1;
+}
+
+.flatCardTop{
   display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
-  gap: 6px;
+  align-items:center;
+  justify-content:space-between;
+  padding: 12px 14px 8px;
+  gap: 10px;
 }
 
-.envelopeDate{
-  font-size: 12px;
+.pill{
+  font-size: 11px;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.82);
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: rgba(255,255,255,0.92);
 }
 
-.envelopeTitle{
+.pill.ghost{
+  background: rgba(255,255,255,0.12);
+  color: rgba(0,0,0,0.75);
+  border-color: rgba(0,0,0,0.08);
+}
+
+.flatDate{
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(20,14,14,0.70);
+  background: rgba(255,255,255,0.34);
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.flatTitle{
   font-family: "Playfair Display", serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.05;
+  padding: 4px 14px 0;
+  color: rgba(20, 14, 14, 0.86);
 }
 
-.envelopePreview{
-  font-size: 13px;
-  color: rgba(255,255,255,0.84);
-  line-height: 1.45;
-  max-width: 56ch;
+.flatPreview{
+  margin-top: 8px;
+  padding: 0 14px 14px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: rgba(20, 14, 14, 0.68);
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .deskActions{
@@ -398,32 +455,23 @@ h1,h2,h3{
   gap: 10px;
 }
 
-/* Letter */
-.letterPaper{
+/* Letter (flat paper) */
+.letterPaperFlat{
   width: 100%;
-  max-width: 860px;
+  max-width: 880px;
   border-radius: 28px;
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: 0 30px 120px rgba(0,0,0,0.48);
   padding: 22px;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   position: relative;
   overflow: hidden;
-}
 
-.letterPaper::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: rgba(0,0,0,0.26);
-  pointer-events:none;
-}
+  background:
+    radial-gradient(1200px 500px at 15% 20%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%),
+    rgba(0,0,0,0.18);
 
-.letterPaper > *{
-  position: relative;
-  z-index: 1;
+  backdrop-filter: blur(10px);
 }
 
 .letterTop{
@@ -451,25 +499,6 @@ h1,h2,h3{
   line-height: 1.78;
   font-size: 16px;
   color: rgba(255,255,255,0.92);
-}
-
-.letterMediaGrid{
-  margin-top: 14px;
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-@media (max-width: 700px){
-  .letterMediaGrid{ grid-template-columns: 1fr; }
-}
-
-.letterImg{
-  width: 100%;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.14);
-  object-fit: cover;
-  background: rgba(0,0,0,0.18);
 }
 
 .letterAudio{
@@ -518,12 +547,12 @@ h1,h2,h3{
 
 @keyframes fxFloatUp{
   0%{ transform: translate3d(0,0,0) translateX(0); opacity: 0; }
-  12%{ opacity: 1; }
-  100%{ transform: translate3d(0,-130vh,0) translateX(var(--drift)); opacity: 0; }
+  10%{ opacity: 1; }
+  100%{ transform: translate3d(var(--drift), -130vh, 0); opacity: 0; }
 }
 
 @keyframes fxFallDown{
   0%{ transform: translate3d(0,0,0) translateX(0); opacity: 0; }
-  12%{ opacity: 1; }
-  100%{ transform: translate3d(0,130vh,0) translateX(var(--drift)); opacity: 0; }
+  15%{ opacity: 1; }
+  100%{ transform: translate3d(var(--drift), 130vh, 0); opacity: 0; }
 }
