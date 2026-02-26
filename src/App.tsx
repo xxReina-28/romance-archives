@@ -10,38 +10,43 @@ type Letter = {
   body: string
   theme?: string
   occasion?: string
+  images?: { src: string; alt?: string }[]
+  voicemailUrl?: string
 }
 
-const PASSPHRASE_CANONICAL = "wowyourehot" // change this once. all variants will match.
+const PASSPHRASE_CANONICAL = "wowyourehot" // change once
 
 function normalizePassphrase(input: string) {
-  // lowercases, removes spaces, apostrophes, and most punctuation
-  // "wow you're hot" -> "wowyourehot"
   return input
     .toLowerCase()
     .trim()
-    .replace(/[\s'’"“”`´]/g, "") // spaces + apostrophes + quote variants
-    .replace(/[^a-z0-9]/g, "") // remove any remaining punctuation/symbols
+    .replace(/[\s'’"“”`´]/g, "")
+    .replace(/[^a-z0-9]/g, "")
 }
 
-function useParticles(count: number, kind: "heart" | "star") {
+function useParticles(kind: "heart" | "star") {
   return useMemo(() => {
-    const arr = Array.from({ length: count }).map((_, i) => {
+    const count = kind === "heart" ? 20 : 18
+    const sizes =
+      kind === "heart"
+        ? [10, 12, 14, 16, 18, 22, 28, 34] // mixed sizes
+        : [8, 10, 12, 14, 18]
+
+    return Array.from({ length: count }).map((_, i) => {
       const left = Math.random() * 100
       const delay = Math.random() * 6
-      const duration = 6 + Math.random() * 8
-      const size = kind === "heart" ? 10 + Math.random() * 16 : 8 + Math.random() * 14
-      const opacity = 0.08 + Math.random() * 0.18
-      const drift = (Math.random() * 2 - 1) * 40 // px
+      const duration = (kind === "heart" ? 7 : 6) + Math.random() * 10
+      const size = sizes[Math.floor(Math.random() * sizes.length)]
+      const opacity = (kind === "heart" ? 0.08 : 0.10) + Math.random() * 0.18
+      const drift = (Math.random() * 2 - 1) * 55
       return { i, left, delay, duration, size, opacity, drift }
     })
-    return arr
-  }, [count, kind])
+  }, [kind])
 }
 
 function AmbientFX() {
-  const hearts = useParticles(14, "heart")
-  const stars = useParticles(18, "star")
+  const hearts = useParticles("heart")
+  const stars = useParticles("star")
 
   return (
     <div className="fxLayer" aria-hidden="true">
@@ -85,9 +90,6 @@ export default function App() {
   const [pass, setPass] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  const [activeId, setActiveId] = useState<string>("midnight-coffee")
-  const scrollerRef = useRef<HTMLDivElement | null>(null)
-
   const letters: Letter[] = useMemo(
     () => [
       {
@@ -95,25 +97,27 @@ export default function App() {
         date: "October 14, 2023",
         title: "The First Rain",
         preview: "I remember the way the sky looked just before it broke…",
-        body: "I remember the way the sky looked just before it broke…\n\n(Replace with your full letter.)",
+        body: "I remember the way the sky looked just before it broke…",
         theme: "Soft",
         occasion: "Random",
+        images: [{ src: "/assets/sample1.jpg", alt: "Memory" }],
       },
       {
         id: "midnight-coffee",
         date: "December 02, 2023",
         title: "Midnight Coffee",
         preview: "The world was asleep, but we were just beginning…",
-        body: "The world was asleep, but we were just beginning…\n\n(Replace with your full letter.)",
+        body: "The world was asleep, but we were just beginning…",
         theme: "Cozy",
         occasion: "Random",
+        voicemailUrl: "/assets/voice-midnight.mp3",
       },
       {
         id: "promise-ink",
         date: "January 20, 2024",
         title: "A Promise in Ink",
         preview: "I found this scrap of paper in my pocket today…",
-        body: "I found this scrap of paper in my pocket today…\n\n(Replace with your full letter.)",
+        body: "I found this scrap of paper in my pocket today…",
         theme: "Romance",
         occasion: "Random",
       },
@@ -122,7 +126,7 @@ export default function App() {
         date: "February 14, 2024",
         title: "The Last Train Home",
         preview: "The station was empty, just the echo of our footsteps…",
-        body: "The station was empty, just the echo of our footsteps…\n\n(Replace with your full letter.)",
+        body: "The station was empty, just the echo of our footsteps…",
         theme: "Bittersweet",
         occasion: "Valentine",
       },
@@ -130,21 +134,42 @@ export default function App() {
     []
   )
 
-  const activeLetter = useMemo(
-    () => letters.find(l => l.id === activeId) ?? letters[0],
-    [letters, activeId]
-  )
+  const themes = useMemo(() => {
+    const set = new Set<string>()
+    letters.forEach(l => l.theme && set.add(l.theme))
+    return Array.from(set).sort()
+  }, [letters])
 
-  function scrollToCard(letterId: string) {
-    const container = scrollerRef.current
-    if (!container) return
-    const el = container.querySelector<HTMLElement>(`[data-letter-id="${letterId}"]`)
-    if (!el) return
-    const containerRect = container.getBoundingClientRect()
-    const elRect = el.getBoundingClientRect()
-    const delta = (elRect.left + elRect.width / 2) - (containerRect.left + containerRect.width / 2)
-    container.scrollBy({ left: delta, behavior: "smooth" })
-  }
+  const occasions = useMemo(() => {
+    const set = new Set<string>()
+    letters.forEach(l => l.occasion && set.add(l.occasion))
+    return Array.from(set).sort()
+  }, [letters])
+
+  const [themeFilter, setThemeFilter] = useState<string>("")
+  const [occasionFilter, setOccasionFilter] = useState<string>("")
+
+  const filtered = useMemo(() => {
+    return letters.filter(l => {
+      if (themeFilter && l.theme !== themeFilter) return false
+      if (occasionFilter && l.occasion !== occasionFilter) return false
+      return true
+    })
+  }, [letters, themeFilter, occasionFilter])
+
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  // keep activeIndex valid when filters change
+  const activeLetter = useMemo(() => {
+    const safeIndex = Math.min(activeIndex, Math.max(0, filtered.length - 1))
+    return filtered[safeIndex] ?? filtered[0]
+  }, [filtered, activeIndex])
+
+  const safeActiveIndex = useMemo(() => {
+    return Math.min(activeIndex, Math.max(0, filtered.length - 1))
+  }, [activeIndex, filtered.length])
+
+  const trackRef = useRef<HTMLDivElement | null>(null)
 
   function onUnlock(e: React.FormEvent) {
     e.preventDefault()
@@ -155,6 +180,17 @@ export default function App() {
     }
     setError(null)
     setView("desk")
+  }
+
+  function go(delta: number) {
+    if (filtered.length === 0) return
+    const next = (safeActiveIndex + delta + filtered.length) % filtered.length
+    setActiveIndex(next)
+  }
+
+  function openLetter() {
+    if (!activeLetter) return
+    setView("letter")
   }
 
   return (
@@ -192,18 +228,12 @@ export default function App() {
                 onChange={(e) => setPass(e.target.value)}
                 required
               />
-              <button
-                className="rounded-2xl px-7 py-3 font-semibold bg-red-500 hover:bg-red-400 transition"
-                type="submit"
-              >
-                Unlock
-              </button>
+              <button className="btnPrimary" type="submit">Unlock</button>
             </form>
 
             {error && (
               <>
                 <p className="mt-3 text-sm text-red-200">{error}</p>
-
                 <div className="mt-6 flex justify-center">
                   <img
                     className="w-72 max-w-full rounded-2xl shadow-lg"
@@ -225,89 +255,105 @@ export default function App() {
       {view === "desk" && (
         <main className="min-h-screen px-5 py-8">
           <div className="max-w-6xl mx-auto">
-            <div className="flex items-start justify-between gap-6">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-semibold">Envelope Desk</h2>
-                <p className="text-white/75">
-                  Pick one. It will fly to the center like it owns the place.
-                </p>
+                <h2 className="text-3xl sm:text-4xl font-semibold">Letters to my amore</h2>
               </div>
 
-              <button
-                className="rounded-2xl px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 transition"
-                onClick={() => {
-                  setPass("")
-                  setError(null)
-                  setView("gate")
-                }}
-              >
-                Lock
+              <div className="flex items-center gap-3 flex-wrap">
+                <select
+                  className="filterSelect"
+                  value={themeFilter}
+                  onChange={(e) => {
+                    setThemeFilter(e.target.value)
+                    setActiveIndex(0)
+                  }}
+                >
+                  <option value="">All themes</option>
+                  {themes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+
+                <select
+                  className="filterSelect"
+                  value={occasionFilter}
+                  onChange={(e) => {
+                    setOccasionFilter(e.target.value)
+                    setActiveIndex(0)
+                  }}
+                >
+                  <option value="">All occasions</option>
+                  {occasions.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+
+                <button
+                  className="btnGhost"
+                  onClick={() => {
+                    setThemeFilter("")
+                    setOccasionFilter("")
+                    setActiveIndex(0)
+                  }}
+                  type="button"
+                >
+                  Clear
+                </button>
+
+                <button
+                  className="btnGhost"
+                  onClick={() => {
+                    setPass("")
+                    setError(null)
+                    setView("gate")
+                  }}
+                  type="button"
+                >
+                  Lock
+                </button>
+              </div>
+            </div>
+
+            {/* Coverflow carousel */}
+            <div className="coverflowWrap mt-10">
+              <button className="navBtn left" onClick={() => go(-1)} aria-label="Previous">
+                ‹
+              </button>
+
+              <div className="coverflowTrack" ref={trackRef}>
+                {filtered.length === 0 ? (
+                  <div className="emptyState">
+                    No letters match those filters.
+                  </div>
+                ) : (
+                  filtered.map((l, idx) => {
+                    const offset = idx - safeActiveIndex
+                    return (
+                      <button
+                        key={l.id}
+                        className="coverItem"
+                        style={{ ["--offset" as any]: offset }}
+                        data-active={idx === safeActiveIndex ? "true" : "false"}
+                        onClick={() => setActiveIndex(idx)}
+                        type="button"
+                      >
+                        <div className="coverCard">
+                          <div className="coverDate">{l.date}</div>
+                          <div className="coverTitle">{l.title}</div>
+                          <div className="coverPreview">{l.preview}</div>
+                        </div>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+
+              <button className="navBtn right" onClick={() => go(1)} aria-label="Next">
+                ›
               </button>
             </div>
 
-            {/* Carousel */}
-            <div className="mt-10">
-              <div
-                ref={scrollerRef}
-                className="carousel"
-              >
-                {letters.map(l => {
-                  const active = l.id === activeId
-                  return (
-                    <button
-                      key={l.id}
-                      data-letter-id={l.id}
-                      className={`envelopeCard ${active ? "isActive" : ""}`}
-                      onClick={() => {
-                        setActiveId(l.id)
-                        scrollToCard(l.id)
-                      }}
-                      type="button"
-                    >
-                      <div className="envelopeMeta">
-                        <span className="envelopeDate">{l.date}</span>
-                      </div>
-                      <div className="envelopeTitle">{l.title}</div>
-                      <div className="envelopePreview">{l.preview}</div>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="mt-6 flex justify-center gap-3">
-                <button
-                  className="rounded-2xl px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 transition"
-                  onClick={() => {
-                    const idx = Math.max(0, letters.findIndex(l => l.id === activeId) - 1)
-                    const next = letters[idx]
-                    setActiveId(next.id)
-                    scrollToCard(next.id)
-                  }}
-                >
-                  Prev
-                </button>
-                <button
-                  className="rounded-2xl px-5 py-2 bg-red-500 hover:bg-red-400 font-semibold transition"
-                  onClick={() => setView("letter")}
-                >
-                  Open
-                </button>
-                <button
-                  className="rounded-2xl px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 transition"
-                  onClick={() => {
-                    const idx = Math.min(letters.length - 1, letters.findIndex(l => l.id === activeId) + 1)
-                    const next = letters[idx]
-                    setActiveId(next.id)
-                    scrollToCard(next.id)
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-
-              <p className="mt-6 text-center text-sm text-white/60">
-                Scroll sideways. Click an envelope to focus it. Then open.
-              </p>
+            <div className="mt-7 flex justify-center gap-3">
+              <button className="btnGhost" onClick={() => go(-1)} type="button">Prev</button>
+              <button className="btnPrimary" onClick={openLetter} type="button">Open</button>
+              <button className="btnGhost" onClick={() => go(1)} type="button">Next</button>
             </div>
           </div>
         </main>
@@ -318,29 +364,49 @@ export default function App() {
           <section className="w-full max-w-3xl rounded-[32px] border border-white/10 bg-black/25 p-7 sm:p-10">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-semibold">To my dearest amore,</h1>
-                <p className="text-white/60 text-sm mt-1">{activeLetter.date} . {activeLetter.title}</p>
+                <h1 className="text-2xl sm:text-3xl font-semibold">
+                  {activeLetter?.title ?? "Letter"}
+                </h1>
+                <p className="text-white/60 text-sm mt-1">
+                  {activeLetter?.date}
+                  {activeLetter?.theme ? ` . ${activeLetter.theme}` : ""}
+                  {activeLetter?.occasion ? ` . ${activeLetter.occasion}` : ""}
+                </p>
               </div>
             </div>
 
+            {/* Optional images */}
+            {activeLetter?.images?.length ? (
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activeLetter.images.map((img, i) => (
+                  <img
+                    key={`${activeLetter.id}-img-${i}`}
+                    className="rounded-2xl border border-white/10 w-full object-cover"
+                    src={img.src}
+                    alt={img.alt ?? ""}
+                    loading="lazy"
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {/* Optional voicemail */}
+            {activeLetter?.voicemailUrl ? (
+              <div className="mt-6">
+                <p className="text-sm text-white/70 mb-2">Voicemail</p>
+                <audio controls preload="metadata" className="w-full">
+                  <source src={activeLetter.voicemailUrl} />
+                </audio>
+              </div>
+            ) : null}
+
             <article className="mt-6 whitespace-pre-wrap leading-relaxed text-white/90">
-              {activeLetter.body}
+              {activeLetter?.body}
             </article>
 
             <div className="mt-8 flex gap-3">
-              <button
-                className="rounded-2xl px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 transition"
-                onClick={() => setView("desk")}
-              >
+              <button className="btnGhost" onClick={() => setView("desk")} type="button">
                 Back
-              </button>
-              <button
-                className="rounded-2xl px-4 py-2 bg-red-500 hover:bg-red-400 font-semibold transition"
-                onClick={() => {
-                  // hook typing replay here later if you want
-                }}
-              >
-                Replay
               </button>
             </div>
           </section>

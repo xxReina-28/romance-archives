@@ -158,3 +158,174 @@ body { margin: 0; }
 .envelopeDate{ font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; }
 .envelopeTitle{ margin-top: 10px; font-size: 20px; font-weight: 700; }
 .envelopePreview{ margin-top: 8px; opacity: 0.78; line-height: 1.45; }
+
+/* ensure full height */
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+/* Buttons */
+.btnPrimary{
+  border-radius: 16px;
+  padding: 12px 20px;
+  font-weight: 700;
+  background: rgba(239,68,68,0.95);
+  border: 1px solid rgba(255,255,255,0.10);
+  transition: transform .15s ease, background .15s ease;
+}
+.btnPrimary:hover{ background: rgba(248,113,113,0.95); transform: translateY(-1px); }
+
+.btnGhost{
+  border-radius: 16px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
+  transition: background .15s ease, transform .15s ease;
+}
+.btnGhost:hover{ background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+
+.filterSelect{
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: white;
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+.filterSelect option{ color: black; }
+
+/* FX layer */
+.fxLayer{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.fxHeart{
+  position: absolute;
+  bottom: -10%;
+  animation: fxFloatUp linear infinite;
+}
+.fxStar{
+  position: absolute;
+  top: -10%;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  animation: fxFallDown linear infinite;
+  box-shadow: 0 0 8px rgba(255,255,255,0.35);
+}
+@keyframes fxFloatUp{
+  0%{ transform: translate3d(0,0,0) translateX(0); opacity: 0; }
+  10%{ opacity: 1; }
+  100%{ transform: translate3d(0,-130vh,0) translateX(var(--drift)); opacity: 0; }
+}
+@keyframes fxFallDown{
+  0%{ transform: translate3d(0,0,0) translateX(0); opacity: 0; }
+  10%{ opacity: 1; }
+  100%{ transform: translate3d(0,130vh,0) translateX(var(--drift)); opacity: 0; }
+}
+
+/* Gate card */
+.gateCardFx{
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(10px);
+}
+
+/* Coverflow */
+.coverflowWrap{
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 64px 1fr 64px;
+  align-items: center;
+  gap: 16px;
+}
+
+.coverflowTrack{
+  position: relative;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* no scrollbar */
+}
+
+.emptyState{
+  padding: 18px 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+}
+
+.navBtn{
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  font-size: 34px;
+  line-height: 1;
+  color: rgba(255,255,255,0.92);
+  display: grid;
+  place-items: center;
+  transition: transform .15s ease, background .15s ease;
+}
+.navBtn:hover{
+  transform: scale(1.06);
+  background: rgba(255,255,255,0.12);
+}
+
+.coverItem{
+  position: absolute;
+  left: 50%;
+  transform:
+    translateX(-50%)
+    translateX(calc(var(--offset) * 260px))
+    scale(calc(1 - (min(3, max(-3, var(--offset))) * 0.12)))
+    rotateY(calc(var(--offset) * -8deg));
+  transform-origin: center;
+  transition: transform .25s ease, filter .25s ease, opacity .25s ease;
+  opacity: calc(1 - (min(3, max(-3, abs(var(--offset)))) * 0.22));
+  filter: blur(calc(min(3, max(0, abs(var(--offset)))) * 1.2px));
+}
+
+.coverItem:hover{
+  transform:
+    translateX(-50%)
+    translateX(calc(var(--offset) * 260px))
+    scale(calc(1.05 - (min(3, max(-3, var(--offset))) * 0.10)))
+    rotateY(calc(var(--offset) * -6deg));
+  opacity: 1;
+  filter: none;
+}
+
+.coverCard{
+  width: min(420px, 78vw);
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.22);
+  backdrop-filter: blur(14px);
+  padding: 18px 18px 20px;
+  box-shadow: 0 22px 70px rgba(0,0,0,0.35);
+}
+
+.coverDate{
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+.coverTitle{
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.coverPreview{
+  margin-top: 8px;
+  opacity: 0.80;
+  line-height: 1.45;
+}
