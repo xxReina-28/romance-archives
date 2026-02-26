@@ -15,4 +15,4 @@ You don’t need to be dramatic. Just breathe.
 
 I’m proud of you.
 
-![Here's a proof, I miss you.](/media/images/missyou.gif)
+![Here's a proof, I miss you.](media/images/missyou.gif)

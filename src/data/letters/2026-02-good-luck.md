@@ -17,7 +17,7 @@ preview: "Before you step into the game."
 
 ---
 
-![I'm rooting for you](/media/images/good-luck.gif)
+![I'm rooting for you](media/images/good-luck.gif)
 
 My Amore,
 
