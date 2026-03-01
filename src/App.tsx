@@ -18,6 +18,14 @@ function uniqSorted(values: Array<string | undefined>) {
   return Array.from(set).sort((a, b) => a.localeCompare(b))
 }
 
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n))
+}
+
+function mod(n: number, m: number) {
+  return ((n % m) + m) % m
+}
+
 /** Flat-card color system */
 function cardColors(theme?: string) {
   const t = (theme || "").toLowerCase()
@@ -42,7 +50,7 @@ type HeartParticle = {
   rotate: number
 }
 
-function makeHearts(count = 34): HeartParticle[] {
+function makeHearts(count = 50): HeartParticle[] {
   const colors = ["#F8FFCC", "#A64646", "#993939"]
   const sizes = [10, 12, 14, 16, 18, 22, 26, 32, 40, 52]
 
@@ -61,10 +69,8 @@ function makeHearts(count = 34): HeartParticle[] {
   })
 }
 
-/**
- * Fullscreen falling hearts. Sits behind content.
- */
-function FallingHearts({ density = 34, z = 0 }: { density?: number; z?: number }) {
+/** Fullscreen hearts behind everything */
+function FallingHearts({ density = 60, z = 0 }: { density?: number; z?: number }) {
   const hearts = useMemo(() => makeHearts(density), [density])
 
   return (
@@ -92,11 +98,10 @@ function FallingHearts({ density = 34, z = 0 }: { density?: number; z?: number }
   )
 }
 
-/**
- * Local falling hearts (confined inside a container, like inside the letter paper).
- */
-function FallingHeartsLocal({ density = 18 }: { density?: number }) {
+/** Hearts confined inside the letter paper */
+function FallingHeartsLocal({ density = 50 }: { density?: number }) {
   const hearts = useMemo(() => makeHearts(density), [density])
+
   return (
     <div className="heartsLayerLocal" aria-hidden="true">
       {hearts.map((h) => (
@@ -122,14 +127,6 @@ function FallingHeartsLocal({ density = 18 }: { density?: number }) {
   )
 }
 
-/**
- * Utility: compute visual weight based on distance from center (scroll-based).
- * 0 = center. 1 = one card away. 2 = two cards away...
- */
-function clamp(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n))
-}
-
 export default function App() {
   const letters = useMemo(() => loadLetters(), [])
 
@@ -151,16 +148,33 @@ export default function App() {
     })
   }, [letters, themeFilter, occasionFilter])
 
+  const baseCount = filtered.length
+  const DUP = 3
+  const virtualCount = baseCount * DUP
+
+  // Real selected letter index (0..baseCount-1)
   const [activeIndex, setActiveIndex] = useState(0)
-  const safeActiveIndex = Math.min(activeIndex, Math.max(0, filtered.length - 1))
+  const safeActiveIndex = Math.min(activeIndex, Math.max(0, baseCount - 1))
   const activeLetter: Letter | undefined = filtered[safeActiveIndex]
+
+  // Virtual carousel index (0..virtualCount-1)
+  const [virtualIndex, setVirtualIndex] = useState(0)
 
   // Scroll carousel refs
   const trackRef = useRef<HTMLDivElement | null>(null)
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
 
-  // Scroll-based “carousel pop” effect
+  // Scroll-based pop/dim
   const rafRef = useRef<number | null>(null)
+  const scrollEndTimer = useRef<number | null>(null)
+
+  const virtualList = useMemo(() => {
+    if (baseCount === 0) return []
+    return Array.from({ length: virtualCount }).map((_, i) => {
+      const realIdx = i % baseCount
+      return { i, realIdx, letter: filtered[realIdx] }
+    })
+  }, [baseCount, virtualCount, filtered])
 
   function updateTransforms() {
     const track = trackRef.current
@@ -177,16 +191,13 @@ export default function App() {
       const itemCenter = r.left + r.width / 2
       const dx = Math.abs(itemCenter - centerX)
 
-      // 0..1 where 0 = center, 1 = far edge
       const t = clamp(dx / (trackRect.width * 0.48), 0, 1)
 
-      // Pop / dim / blur based on t
       const scale = 1.06 - t * 0.18
       const opacity = 1 - t * 0.55
       const blur = t * 0.9
       const lift = (1 - t) * 6
 
-      // Slight tilt away from center (subtle)
       const tiltDir = itemCenter < centerX ? -1 : 1
       const tilt = tiltDir * (t * 2.0)
 
@@ -198,13 +209,47 @@ export default function App() {
     }
   }
 
+  function normalizeToMiddleCopy(nextVirtual: number) {
+    if (baseCount === 0) return nextVirtual
+
+    const leftEdge = baseCount
+    const rightEdge = baseCount * 2
+
+    if (nextVirtual < leftEdge || nextVirtual >= rightEdge) {
+      // Teleport to same real index in middle copy
+      return mod(nextVirtual, baseCount) + baseCount
+    }
+    return nextVirtual
+  }
+
+  function jumpToVirtual(idx: number) {
+    const el = itemRefs.current[idx]
+    if (el) el.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" })
+    setTimeout(() => updateTransforms(), 0)
+  }
+
+  function scrollToVirtual(idx: number) {
+    const el = itemRefs.current[idx]
+    if (el) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    setTimeout(() => updateTransforms(), 120)
+  }
+
   function onTrackScroll() {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
     rafRef.current = requestAnimationFrame(updateTransforms)
+
+    // After scroll settles, teleport if we're leaving the middle copy
+    if (scrollEndTimer.current) window.clearTimeout(scrollEndTimer.current)
+    scrollEndTimer.current = window.setTimeout(() => {
+      const normalized = normalizeToMiddleCopy(virtualIndex)
+      if (normalized !== virtualIndex) {
+        setVirtualIndex(normalized)
+        jumpToVirtual(normalized)
+      }
+    }, 160)
   }
 
   useEffect(() => {
-    // Update transforms on mount, resize, and whenever list changes
     const track = trackRef.current
     if (!track) return
 
@@ -218,20 +263,35 @@ export default function App() {
       window.removeEventListener("resize", onResize)
       track.removeEventListener("scroll", onTrackScroll as any)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (scrollEndTimer.current) window.clearTimeout(scrollEndTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered.length, view])
+  }, [view, virtualCount])
 
-  // When activeIndex changes via buttons, scroll the active card into center
+  // When we enter desk or filters change, start in the middle copy
   useEffect(() => {
-    const el = itemRefs.current[safeActiveIndex]
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-      // after scroll starts, update transforms
-      setTimeout(() => updateTransforms(), 120)
-    }
+    if (view !== "desk") return
+    if (baseCount === 0) return
+
+    const start = baseCount // first item in middle copy
+    setActiveIndex(0)
+    setVirtualIndex(start)
+
+    setTimeout(() => {
+      jumpToVirtual(start)
+    }, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safeActiveIndex])
+  }, [view, baseCount, themeFilter, occasionFilter])
+
+  // When virtualIndex changes (via Prev/Next), smooth scroll
+  useEffect(() => {
+    if (view !== "desk") return
+    if (baseCount === 0) return
+    if (virtualIndex < 0 || virtualIndex >= virtualCount) return
+
+    scrollToVirtual(virtualIndex)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [virtualIndex])
 
   function onUnlock(e: React.FormEvent) {
     e.preventDefault()
@@ -245,9 +305,16 @@ export default function App() {
   }
 
   function go(delta: number) {
-    if (filtered.length === 0) return
-    const next = (safeActiveIndex + delta + filtered.length) % filtered.length
-    setActiveIndex(next)
+    if (baseCount === 0) return
+
+    setActiveIndex((a) => mod(a + delta, baseCount))
+
+    setVirtualIndex((v) => {
+      let next = v + delta
+      // keep within [0..virtualCount-1] so refs exist
+      next = mod(next, Math.max(1, virtualCount))
+      return next
+    })
   }
 
   function openLetter() {
@@ -261,19 +328,13 @@ export default function App() {
     setThemeFilter("")
     setOccasionFilter("")
     setActiveIndex(0)
+    setVirtualIndex(0)
     setView("gate")
   }
 
   function clearFilters() {
     setThemeFilter("")
     setOccasionFilter("")
-    setActiveIndex(0)
-    // recenter first card
-    setTimeout(() => {
-      const el = itemRefs.current[0]
-      el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-      setTimeout(() => updateTransforms(), 120)
-    }, 0)
   }
 
   return (
@@ -327,15 +388,7 @@ export default function App() {
               <select
                 className="filterSelect"
                 value={themeFilter}
-                onChange={(e) => {
-                  setThemeFilter(e.target.value)
-                  setActiveIndex(0)
-                  setTimeout(() => {
-                    const el = itemRefs.current[0]
-                    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-                    setTimeout(() => updateTransforms(), 120)
-                  }, 0)
-                }}
+                onChange={(e) => setThemeFilter(e.target.value)}
               >
                 <option value="">All themes</option>
                 {themes.map((t) => (
@@ -348,15 +401,7 @@ export default function App() {
               <select
                 className="filterSelect"
                 value={occasionFilter}
-                onChange={(e) => {
-                  setOccasionFilter(e.target.value)
-                  setActiveIndex(0)
-                  setTimeout(() => {
-                    const el = itemRefs.current[0]
-                    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-                    setTimeout(() => updateTransforms(), 120)
-                  }, 0)
-                }}
+                onChange={(e) => setOccasionFilter(e.target.value)}
               >
                 <option value="">All occasions</option>
                 {occasions.map((o) => (
@@ -382,37 +427,46 @@ export default function App() {
                 ‹
               </button>
 
-              <div
-                className="coverflowTrack scrollTrack"
-                ref={trackRef}
-                role="list"
-                aria-label="Letters carousel"
-              >
-                {filtered.length === 0 ? (
+              <div className="coverflowTrack" ref={trackRef} role="list" aria-label="Letters carousel">
+                {baseCount === 0 ? (
                   <div className="emptyState">No letters match those filters.</div>
                 ) : (
-                  filtered.map((l, idx) => {
-                    const isActive = idx === safeActiveIndex
+                  virtualList.map(({ i, realIdx, letter: l }) => {
+                    const isActive = realIdx === safeActiveIndex && mod(virtualIndex, baseCount) === realIdx
                     const c = cardColors(l.theme)
 
                     return (
                       <button
-                        key={`${l.id}-${idx}`}
+                        key={`${l.id}-${i}`}
                         ref={(el) => {
-                          itemRefs.current[idx] = el
+                          itemRefs.current[i] = el
                         }}
                         className={`coverItem snapItem ${isActive ? "isActive" : ""}`}
                         style={{
                           ["--cardA" as any]: c.a,
                           ["--cardB" as any]: c.b,
                         }}
-                        onClick={() => setActiveIndex(idx)}
+                        onClick={() => {
+                          // If clicked outside middle copy, normalize to middle equivalent for seamless loop
+                          const normalized = normalizeToMiddleCopy(i)
+                          setVirtualIndex(normalized)
+                          setActiveIndex(realIdx)
+
+                          // If we normalized, jump immediately to avoid weird long scroll
+                          if (normalized !== i) {
+                            setTimeout(() => jumpToVirtual(normalized), 0)
+                          }
+                        }}
                         type="button"
                         role="listitem"
                       >
                         <div className="flatCard">
                           <div className="flatCardTop">
-                            {l.audio ? <span className="pill">VOICE</span> : <span className="pill ghost">TEXT</span>}
+                            {l.audio ? (
+                              <span className="pill">VOICE</span>
+                            ) : (
+                              <span className="pill ghost">TEXT</span>
+                            )}
                             <div className="flatDate">{String(l.date ?? "")}</div>
                           </div>
 
@@ -448,11 +502,9 @@ export default function App() {
       {/* LETTER VIEW */}
       {view === "letter" && activeLetter && (
         <main className="stageCenter">
-          {/* Background hearts */}
           <FallingHearts density={26} z={0} />
 
           <section className="letterPaperFlat">
-            {/* Hearts inside the opened letter */}
             <FallingHeartsLocal density={16} />
 
             <div className="letterTop">
